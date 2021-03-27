@@ -1,3 +1,10 @@
+GIT
+  remote: https://github.com/citizensadvice/capybara_accessible_selectors.git
+  revision: 95fec5d6d1631bd485e777dfd29b6b3f3233f3a1
+  specs:
+    capybara_accessible_selectors (0.5.0)
+      capybara (~> 3)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -220,6 +227,7 @@ PLATFORMS
 DEPENDENCIES
   bootsnap (>= 1.4.4)
   capybara (>= 3.26)
+  capybara_accessible_selectors!
   debug (>= 1.0.0)
   image_processing (~> 1.2)
   importmap-rails (>= 0.9.2)
@@ -228,7 +236,7 @@ DEPENDENCIES
   puma (~> 5.0)
   rails (~> 7.0.1)
   redis (~> 4.0)
-  selenium-webdriver (>= 4.0.0)
+  selenium-webdriver (>= 4.1.0)
   sprockets-rails (>= 3.4.1)
   stimulus-rails (>= 0.7.3)
   turbo-rails (>= 0.9.0)
