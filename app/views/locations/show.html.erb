@@ -1,0 +1,10 @@
+<p id="notice"><%= notice %></p>
+
+<%= render @location %>
+
+<div>
+  <%= link_to "Edit this location", edit_location_path(@location) %> |
+  <%= link_to "Back to locations", locations_path %>
+
+  <%= button_to "Destroy this location", location_path(@location), method: :delete %>
+</div>
