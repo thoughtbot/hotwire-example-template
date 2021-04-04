@@ -1,11 +1,26 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  name: MyString
-  latitude: 9.99
-  longitude: 9.99
+columbus_circle:
+  name: Columbus Circle
+  latitude: 40.768116
+  longitude: -73.982335
 
-two:
-  name: MyString
-  latitude: 9.99
-  longitude: 9.99
+herald_square:
+  name: Herald Square
+  latitude: 40.750264301347
+  longitude: -73.9876413345337
+
+madison_square:
+  name: Madison Square Park
+  latitude: 40.7422533
+  longitude: -73.9878567
+
+union_square:
+  name: Union Square Park
+  latitude: 40.735770929317
+  longitude: -73.9904415607452
+
+time_square:
+  name: Time Square
+  latitude: 40.758896
+  longitude: -73.985130

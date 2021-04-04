@@ -2,7 +2,7 @@ require "application_system_test_case"
 
 class LocationsTest < ApplicationSystemTestCase
   setup do
-    @location = locations(:one)
+    @location = locations(:union_square)
   end
 
   test "visiting the index" do
@@ -43,5 +43,15 @@ class LocationsTest < ApplicationSystemTestCase
     click_on "Destroy this location"
 
     assert_text "Location was successfully destroyed"
+  end
+
+  test "list includes locations" do
+    parks_on_broadway = locations(:union_square, :madison_square, :herald_square, :time_square, :columbus_circle)
+
+    visit locations_path
+
+    within_section "Locations" do
+      parks_on_broadway.all? { assert_text _1.name }
+    end
   end
 end
