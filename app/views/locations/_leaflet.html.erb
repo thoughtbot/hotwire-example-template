@@ -1,0 +1,9 @@
+<%= tag.section data: {
+  controller: "leaflet",
+  leaflet_geo_json_layer_value: geo_json_layer,
+  leaflet_tile_layer_value: tile_layer,
+} do %>
+  <h1>Map</h1>
+
+  <article class="w-full h-96" data-leaflet-target="map"></article>
+<% end %>
