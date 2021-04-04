@@ -58,14 +58,22 @@ class LocationsTest < ApplicationSystemTestCase
   test "limits results geographically by bounding box" do
     parks_within_bounds = locations(:madison_square, :herald_square)
     parks_outside_bounds = locations(:union_square, :time_square, :columbus_circle)
-    bbox = BoundingBox.containing(parks_within_bounds)
 
     visit locations_path
-    fill_in("Bbox", with: bbox).then { click_on "Search this area" }
+    zoom_in(2.times).then { click_on "Search this area" }
 
     within_section "Locations" do
       parks_within_bounds.all? { assert_text _1.name }
       parks_outside_bounds.none? { assert_no_text _1.name }
     end
+  end
+
+  def zoom_in(times = 1.times)
+    times.each { click_on "Zoom in" }
+    wait_for_animation
+  end
+
+  def wait_for_animation
+    assert_no_css ".leaflet-zoom-anim"
   end
 end

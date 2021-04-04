@@ -594,3 +594,114 @@ provided box:
    }
  }
 ```
+
+## Reading the query bounds from the map
+
+Expecting end-users to provide fully-formed and valid `bbox` strings on
+their own is unreasonable. Instead, let's set the `<form>` submission's
+`bbox` field based on the [LatLngBounds][] of the map.
+
+Whenever the map is panned or zoomed, the [L.Map][] instance will fire a
+[moveend][] event via Leaflet's own event system. We'll declare the
+`prepareSearch(event)` action to receive respond to the `moveend`
+events. The event's `target` property is a reference to the `L.Map`
+instance that fired the event. We'll read the current boundaries from
+that instance by calling `getBounds()`, then serialize the results to a
+"bounding box" string by calling `.toBBoxString()`:
+
+```diff
+--- a/app/assets/javascripts/controllers/leaflet_controller.js
++++ b/app/assets/javascripts/controllers/leaflet_controller.js
++
++  prepareSearch = ({ target }) => {
++    const bbox = target.getBounds().toBBoxString()
++  }
+ }
+```
+
+Once we've generated the value, we'll encode it into a field without our
+`<form>` element so that it's transmitted to the server during s
+submission. The `<form>` currently encodes the `bbox` as an [`<input
+type="text">`][type="text"]. We'll replace that field by
+programmatically encoding the "bounding box" string value into a
+`[name="bbox"]` and `[value]` pair onto the form's `<button>` element:
+
+```diff
+--- a/app/views/locations/_leaflet.html.erb
++++ b/app/views/locations/_leaflet.html.erb
+   <article class="w-full h-96" data-leaflet-target="map"></article>
+
+   <form>
+-    <label for="search_bbox">Bbox</label>
+-    <input id="search_bbox" name="bbox" type="text">
+-
+-    <button>
++    <button name="bbox">
+       Search this area
+     </button>
+   </form>
+```
+
+During the submission of a `<form>` element, the browser will encode any
+`[name]` and `[value]` attributes declared on its submitter into the
+request's data.
+
+In order to write to the element, we'll need direct direct access from
+our `leaflet` controller. We'll annotate the `<button>` with
+`[data-leaflet-target="bbox"]`:
+
+```diff
+--- a/app/views/locations/_leaflet.html.erb
++++ b/app/views/locations/_leaflet.html.erb
+   <article class="w-full h-96" data-leaflet-target="map"></article>
+
+   <form>
+-    <button name="bbox">
++    <button name="bbox" data-leaflet-target="bbox">
+       Search this area
+     </button>
+   </form>
+```
+
+Then, we'll declare a corresponding entry in the controller's static
+`targets` property:
+
+```diff
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+ import { Controller } from "@hotwired/stimulus"
+
+ export default class extends Controller {
+-  static get targets() { return [ "map" ] }
++  static get targets() { return [ "bbox", "map" ] }
+   static get values() { return { tileLayer: Object, geoJsonLayer: Object } }
+```
+
+Then set the `<button name="bbox">` element's [value][] to the
+`bboxString` generated from the map's new bounds:
+
+```diff
+--- a/app/assets/javascripts/controllers/leaflet_controller.js
++++ b/app/assets/javascripts/controllers/leaflet_controller.js
+
+   prepareSearch = ({ target }) => {
+     const bbox = target.getBounds().toBBoxString()
++    this.bboxTarget.value = bbox
+   }
+ }
+```
+
+Whenever the user drags the map, Leaflet will fire a `moveend` event.
+Our `leaflet` controller will respond by encoding the map's bounds to a
+value that it directly encodes to the "Search this area" button. The
+next time the user clicks that `<button>` element, the `<form>` will
+submit a query, navigate the page, and render results that meet the
+query's geographic criteria.
+
+[bbox]: https://tools.ietf.org/html/rfc7946#section-5
+[LatLngBounds]: https://leafletjs.com/reference-1.6.0.html#latlngbounds
+[moveend]: https://leafletjs.com/reference-1.6.0.html#map-moveend
+[L.Map]: https://leafletjs.com/reference-1.6.0.html#map
+[Stimulus Controller Action]: https://stimulus.hotwire.dev/handbook/building-something-real#connecting-the-action
+[type="text"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/text
+[value]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement#properties
