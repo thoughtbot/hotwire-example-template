@@ -54,4 +54,18 @@ class LocationsTest < ApplicationSystemTestCase
       parks_on_broadway.all? { assert_text _1.name }
     end
   end
+
+  test "limits results geographically by bounding box" do
+    parks_within_bounds = locations(:madison_square, :herald_square)
+    parks_outside_bounds = locations(:union_square, :time_square, :columbus_circle)
+    bbox = BoundingBox.containing(parks_within_bounds)
+
+    visit locations_path
+    fill_in("Bbox", with: bbox).then { click_on "Search this area" }
+
+    within_section "Locations" do
+      parks_within_bounds.all? { assert_text _1.name }
+      parks_outside_bounds.none? { assert_no_text _1.name }
+    end
+  end
 end

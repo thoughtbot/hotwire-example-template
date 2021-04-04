@@ -3,7 +3,15 @@ class LocationsController < ApplicationController
 
   # GET /locations or /locations.json
   def index
-    @locations = Location.all
+    bounding_box = BoundingBox.parse(params[:bbox])
+
+    if bounding_box.valid?
+      @locations = Location.within(bounding_box)
+      @bounding_box = bounding_box
+    else
+      @locations = Location.all
+      @bounding_box = BoundingBox.containing(@locations)
+    end
   end
 
   # GET /locations/1 or /locations/1.json

@@ -15,11 +15,12 @@ export default class extends Controller {
     layer.addTo(this.leaflet).bringToBack()
   }
 
-  geoJsonLayerValueChanged(value) {
-    const layer = L.geoJSON(value)
+  geoJsonLayerValueChanged({ bbox: [ west, south, east, north ], ...featureCollection }) {
+    const bounds = L.latLngBounds([ south, west ], [ north, east ])
+    const layer = L.geoJSON(featureCollection)
 
     layer.addTo(this.leaflet).bringToFront()
 
-    this.leaflet.fitBounds(layer.getBounds())
+    this.leaflet.fitBounds(bounds)
   }
 }

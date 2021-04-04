@@ -422,3 +422,175 @@ location:
 [L.geoJSON]: https://leafletjs.com/reference-1.6.0.html#geojson
 [jbuilder]: https://github.com/rails/jbuilder/tree/v2.11.2#jbuilder
 [connected]: https://stimulus.hotwire.dev/reference/lifecycle-callbacks#connection
+
+## Scoping Locations geographically
+
+In the spirit of [Progressive Enhancement][], we'll implement the
+feature as if Stimulus and Turbo were unavailable. Ignoring the map and
+its markers for a moment, let's consider the changes we'll need to make
+to `locations#index` controller action so that end-users can filter
+Locations based on their geographies.
+
+First, we'd need a `<form>` and `<input>` element to submit filter
+information to the server. For the sake of getting an initial working
+version, we'll accept the dimensions of a geographic bounding box's as a
+quartet of latitudes and longitudes (comma delimited, of course):
+
+```diff
+--- a/app/views/locations/_leaflet.html.erb
++++ b/app/views/locations/_leaflet.html.erb
+   <h1>Map</h1>
+
+   <article class="w-full h-96" data-leaflet-target="map"></article>
++
++  <form>
++    <label for="search_bbox">Bbox</label>
++    <input id="search_bbox" name="bbox" type="text">
++
++    <button>
++      Search this area
++    </button>
++  </form>
+ <% end %>
+```
+
+For example, a bounding box query of
+`-73.990441,40.735770,-73.982335,40.768116` would represent a geographic
+box with a Western longitude of `-73.990441`, a Southern latitude of
+`40.735770`, an Eastern longitude of -73.982335, and a Northern latitude
+of `40.768116`.
+
+Requests made from a `<form>` element _with_ `[method="get"]` and
+_without_ an `[action]` attribute are submitted to the _current_ URL,
+which is perfect for filtering.
+
+[Progressive Enhancement]: https://developer.mozilla.org/en-US/docs/Glossary/Progressive_Enhancement
+[action]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#attr-action
+[form_with]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/FormHelper.html#method-i-form_with
+[GET]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET
+[query parameters]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams#examples
+
+Once submitted, we'll transform the submission's filter paramters into
+Active Record-powered `Location` queries:
+
+```diff
+--- a/app/controllers/locations_controller.rb
++++ b/app/controllers/locations_controller.rb
+ def index
+-  @locations = Location.all
++  bounding_box = BoundingBox.parse(params[:bbox])
++
++  if bounding_box.valid?
++    @locations = Location.within(bounding_box)
++    @bounding_box = bounding_box
++  else
++    @locations = Location.all
++    @bounding_box = BoundingBox.containing(@locations)
++  end
+ end
+
+--- a/app/models/location.rb
++++ b/app/models/location.rb
+@@ -1,2 +1,3 @@
+ class Location < ApplicationRecord
++  scope :within, ->(bounding_box) { where bounding_box.to_h }
+ end
+```
+
+It's worth highlighting the fact that Postgres supports both [Geometric
+Types][] and [Geographic Types][] (through [PostGIS][]). However, for
+the sake of this article intends to illustrate Hotwire-specific
+concepts, we'll forego more advance Postgres features in favor of a more
+simplistic pairing of a bounding rectangle's [Range][] values:
+
+[Geometric Types]: https://www.postgresql.org/docs/12/datatype-geometric.html
+[Geographic Types]: https://postgis.net/docs/manual-3.1/postgis_usage.html#using_postgis_dbmanagement
+[PostGIS]: https://postgis.net/docs/manual-3.1/
+[Range]: https://ruby-doc.org/core-3.0.1/Range.html
+
+```ruby
+class BoundingBox
+  include ActiveModel::Model
+  include ActiveModel::Attributes
+
+  attribute :west, :decimal
+  attribute :south, :decimal
+  attribute :east, :decimal
+  attribute :north, :decimal
+
+  validates :west, :east, inclusion: { in: -180..180 }
+  validates :south, :north, inclusion: { in: -90..90 }
+
+  def self.parse(bbox)
+    coordinates bbox.to_s.split(",")
+  end
+
+  def self.coordinates(coordinates)
+    west, south, east, north = coordinates
+
+    new west: west, south: south, east: east, north: north
+  end
+
+  def self.containing(locations)
+    west, east = locations.pluck(:longitude).minmax
+    south, north = locations.pluck(:latitude).minmax
+
+    coordinates [ west, south, east, north ]
+  end
+
+  def to_h
+    { longitude: west..east, latitude: south..north }
+  end
+
+  def to_a
+    [ west, south, east, north ]
+  end
+
+  def to_s
+    to_a.join(",")
+  end
+end
+```
+
+Make the Bounds available to the Leaflet map
+---
+
+Setting the `@bounding_box` instance variable within the
+`locations#index` controller action makes it available within the
+`app/views/locations/index` template. Within the GeoJSON template, rely
+on the `BoundingBox#to_a` implementation to serialize the bounds to the
+GeoJSON layer's data under the [`bbox` key][]:
+
+```diff
+--- a/app/views/locations/index.json.jbuilder
++++ b/app/views/locations/index.json.jbuilder
+ json.type "FeatureCollection"
+ json.features @locations, partial: "locations/location", as: :location
++json.bbox @bounding_box.to_a
+```
+
+[`bbox` key]: https://tools.ietf.org/html/rfc7946#section-5
+
+Finally, the `leaflet` controller can read the bounds directly from the
+GeoJSON dataset's `bbox` value, and fit the Leaflet map based on the
+provided box:
+
+```diff
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+     layer.addTo(this.leaflet).bringToBack()
+   }
+
+-  geoJsonLayerValueChanged(value) {
++  geoJsonLayerValueChanged({ bbox: [ west, south, east, north ], ...featureCollection }) {
+-    const layer = L.geoJSON(value)
++    const layer = L.geoJSON(featureCollection)
++    const bounds = L.latLngBounds([ south, west ], [ north, east ])
+
+     layer.addTo(this.leaflet).bringToFront()
+
+-    this.leaflet.fitBounds(layer.getBounds())
++    this.leaflet.fitBounds(bounds)
+   }
+ }
+```
