@@ -53,6 +53,9 @@ class LocationsTest < ApplicationSystemTestCase
     within_section "Locations" do
       parks_on_broadway.all? { assert_text _1.name }
     end
+    within_section "Map" do
+      parks_on_broadway.all? { assert_link href: location_path(_1) }
+    end
   end
 
   test "limits results geographically by bounding box" do
@@ -65,6 +68,10 @@ class LocationsTest < ApplicationSystemTestCase
     within_section "Locations" do
       parks_within_bounds.all? { assert_text _1.name }
       parks_outside_bounds.none? { assert_no_text _1.name }
+    end
+    within_section "Map" do
+      parks_within_bounds.all? { assert_link href: location_path(_1) }
+      parks_outside_bounds.none? { assert_no_link href: location_path(_1) }
     end
   end
 

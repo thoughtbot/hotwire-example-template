@@ -2,7 +2,7 @@ import L from "https://cdn.skypack.dev/leaflet@1.6.0"
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static get targets() { return [ "bbox", "map" ] }
+  static get targets() { return [ "bbox", "map", "template" ] }
   static get values() { return { tileLayer: Object, geoJsonLayer: Object } }
 
   initialize() {
@@ -24,8 +24,9 @@ export default class extends Controller {
   }
 
   geoJsonLayerValueChanged({ bbox: [ west, south, east, north ], ...featureCollection }) {
+    const { pointToLayer } = this
     const bounds = L.latLngBounds([ south, west ], [ north, east ])
-    const layer = L.geoJSON(featureCollection)
+    const layer = L.geoJSON(featureCollection, { pointToLayer })
 
     layer.addTo(this.leaflet).bringToFront()
 
@@ -35,5 +36,11 @@ export default class extends Controller {
   prepareSearch = ({ target }) => {
     const bbox = target.getBounds().toBBoxString()
     this.bboxTarget.value = bbox
+  }
+
+  pointToLayer = ({ properties: { icon: { id, ...options } } }, latLng) => {
+    const html = this.templateTarget.content.getElementById(id).cloneNode(true)
+
+    return L.marker(latLng, { icon: L.divIcon({ html, ...options }) })
   }
 }

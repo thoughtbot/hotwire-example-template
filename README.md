@@ -705,3 +705,175 @@ query's geographic criteria.
 [Stimulus Controller Action]: https://stimulus.hotwire.dev/handbook/building-something-real#connecting-the-action
 [type="text"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/text
 [value]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement#properties
+
+## Rendering our own Location markers
+
+Let's configure Leaflet to render each marker with a custom icon that we
+provide. We'll encode the markers' HTML into our server-generated
+`locations/leaflet` partial. We'll embed them into the response's
+document with an HTML `<template>` element, making sure that each
+element declares a unique `[id]` attribute:
+
+```diff
+--- a/app/views/locations/_leaflet.html.erb
++++ b/app/views/locations/_leaflet.html.erb
+ } do %>
+   <h1>Map</h1>
+
++  <template>
++    <% locations.each do |location| %>
++      <%= tag.div id: dom_id(location, :marker) do %>
++        <span class="sr-only"><%= location.name %></span>
++        <%= inline_svg_tag "marker", class: "h-8 w-8" %>
++      <% end %>
++    <% end %>
++  </template>
++
+   <article class="w-full h-96" data-leaflet-target="map"></article>
+
+   <form>
+```
+
+The implementation for our `inline_svg_tag` helper draws inspiration
+from a [tweet-size code snippet shared by George
+Claghorn][inline_svg_tag]:
+
+```ruby
+module ApplicationHelper
+  def inline_svg_tag(name, **options)
+    svg_path(name).read.strip.then do |svg|
+      raw options.any? ? svg.sub(/\A<svg(.*?)>/, "<svg\\1 #{tag.attributes(options)}>") : svg
+    end
+  end
+
+  def svg_path(name)
+    Rails.root.join("app/assets/images/#{name}.svg")
+  end
+end
+```
+
+The `"marker"` file referenced as an argument in the call to
+`inline_svg_tag(name)` contains an `<svg>` element that we'll render
+directly into our HTML template:
+
+```html
+<!-- app/assets/images/marker.svg -->
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 34" fill="none" role="presentation">
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M23.9016 24.5C26.6454 21.9144 28.3582 18.2468 28.3582 14.1791C28.3582 6.3482 22.01 0 14.1791 0C6.3482 0 0 6.3482 0 14.1791C0 18.5588 1.98575 22.4748 5.10603 25.0757L14.5 34L24 24.5H23.9016Z" fill="currentColor"/>
+</svg>
+```
+
+Once we've encoded the marker's HTML icon into our page, we'll need to
+access it from our `leaflet` controller. Let's create a `templateTarget`
+property to access the `<template>` element by pairing a
+`[data-leaflet-target="template"]` attribute in our HTML with a
+`"template"` entry in the `leaflet` controller's `targets` static
+property:
+
+```diff
+--- a/app/views/locations/_leaflet.html.erb
++++ b/app/views/locations/_leaflet.html.erb
+ } do %>
+   <h1>Map</h1>
+
+-  <template>
++  <template data-leaflet-target="template">
+     <% locations.each do |location| %>
+       <%= tag.div id: dom_id(location, :marker) do %>
+         <span class="sr-only"><%= location.name %></span>
+         <%= inline_svg_tag "marker", class: "h-8 w-8" %>
+       <% end %>
+     <% end %>
+   </template>
+
+   <article class="w-full h-96" data-leaflet-target="map"></article>
+
+   <form>
+
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+ import { Controller } from "@hotwired/stimulus"
+
+ export default class extends Controller {
+-  static get targets() { return [ "bbox", "map" ] }
++  static get targets() { return [ "bbox", "map", "template" ] }
+   static get values() { return { tileLayer: Object, geoJsonLayer: Object } }
+
+   initialize() {
+```
+
+Leaflet's interface for [L.GeoJSON][] layers accepts a [pointToLayer][]
+function to provide applications with a seam to transform GeoJSON data
+into map markers. We'll declare a `pointToLayer` method to transform
+GeoJSON into an [L.Marker][] instance:
+
+```diff
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+     const bbox = target.getBounds().toBBoxString()
+     this.bboxTarget.value = bbox
+   }
++
++  pointToLayer = ({ properties: { icon: { id, ...options } } }, latLng) => {
++    const html = this.templateTarget.content.getElementById(id).cloneNode(true)
++
++    return L.marker(latLng, { icon: L.divIcon({ html, ...options }) })
++  }
+ }
+```
+
+We can pass that `pointToLayer` function, to our `L.geoJSON` call so
+that we can transform the GeoJSON data that our controller's
+`geoJsonLayerValue` property provides into instances of [L.DivIcon][]
+and [L.Marker][]:
+
+```diff
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+   }
+
+   geoJsonLayerValueChanged({ bbox: [ west, south, east, north ], ...featureCollection }) {
++    const { pointToLayer } = this
+     const bounds = L.latLngBounds([ south, west ], [ north, east ])
+-    const layer = L.geoJSON(featureCollection)
++    const layer = L.geoJSON(featureCollection, { pointToLayer })
+
+     layer.addTo(this.leaflet).bringToFront()
+```
+
+Leveraging our existing server-to-client pipeline, we have an
+opportunity to encode server-rendered HTML into our GeoJSON in a
+Leaflet-compliant way.
+
+According to the GeoJSON specifications:
+
+> A [Feature][] object has a member with the name "properties".  The
+> value of the properties member is an object (any JSON object or a
+> JSON null value).
+
+Since the structure of a Feature's `"properties"` key is free form,
+let's serialize the data necessary for retrieving the icon's HTML from
+our `<template data-leaflet-target="template">` element's content:
+
+```diff
+--- a/app/views/locations/_location.json.jbuilder
++++ b/app/views/locations/_location.json.jbuilder
+   json.type "Point"
+   json.coordinates location.values_at(:longitude, :latitude)
+ end
++json.properties do
++  json.icon do
++    json.id dom_id(location, :marker)
++  end
++end
+```
+
+[L.GeoJSON]: https://leafletjs.com/reference-1.6.0.html#geojson
+[pointToLayer]: https://leafletjs.com/reference-1.6.0.html#geojson-pointtolayer
+[L.Marker]: https://leafletjs.com/reference-1.6.0.html#marker
+[L.DivIcon]: https://leafletjs.com/reference-1.6.0.html#divicon
+[GeoJSON]: https://tools.ietf.org/html/rfc7946
+[Feature]: https://tools.ietf.org/html/rfc7946#section-3.2
+[inline_svg_tag]: https://twitter.com/georgeclaghorn/status/1430211569212854272/photo/1
+[Turbo-capable `<a>` element]: https://turbo.hotwire.dev/handbook/introduction#turbo-drive%3A-navigate-within-a-persistent-process

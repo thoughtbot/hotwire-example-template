@@ -1,6 +1,7 @@
 <p id="notice"><%= notice %></p>
 
 <%= render partial: "locations/leaflet", locals: {
+  locations: @locations,
   geo_json_layer: render(template: "locations/index", formats: :json),
   tile_layer: Rails.configuration.x.leaflet,
 } %>
