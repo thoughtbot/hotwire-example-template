@@ -25,7 +25,7 @@
 
   <div class="actions">
     <%= form.submit %>
-    <%= form.button "Preview Article", formaction: previews_path,
+    <%= form.button "Preview Article", formaction: previews_path(render_into: "article_preview"),
           name: "_method", value: "post" %>
   </div>
 <% end %>

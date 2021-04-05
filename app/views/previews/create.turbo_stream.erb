@@ -1,0 +1,3 @@
+<%= turbo_stream.update params[:render_into] do %>
+  <%= render partial: "articles/article", object: @preview, as: :article %>
+<% end %>

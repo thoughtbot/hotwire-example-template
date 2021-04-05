@@ -293,3 +293,124 @@ transformations (like Markdown parsing or other rich-text styling).
 [_method]: https://edgeguides.rubyonrails.org/form_helpers.html#how-do-forms-with-patch-put-or-delete-methods-work-questionmark
 [attributes]: https://edgeapi.rubyonrails.org/classes/ActiveRecord/AttributeMethods.html#method-i-attributes
 [simple_format]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/TextHelper.html#method-i-simple_format
+
+## Progressively Enhancing the experience with Hotwire
+
+Since Rails generators provide out-of-the-box integration with [Turbo
+and Stimulus][hotwire-generators], our application's `<a>`-initiated
+navigations and `<form>`-powered submissions are augmented by [Turbo
+Drive][].
+
+In spite of that, we haven't capitalized on any opportunities to
+implement any [Hotwire][]-specific capabilities. Let's build atop the
+foundation we've established for `POST /previews` requests by
+progressively enhancing the experience with [Turbo Stream][].
+
+After we make our changes, responses to `POST /previews` submissions
+will embed server-generated HTML into [`<turbo-stream>`][Turbo Stream]
+elements, which our client-side application can render.
+
+In this case, Turbo will process the `<turbo-stream action="replace">`
+elements that contain the Article preview HTML by finding corresponding
+elements within the client's current document replacing their HTML
+contents, without redirecting or navigating the page, all without a
+single line of application-specific JavaScript.
+
+[Turbo Stream]: https://turbo.hotwired.dev/handbook/streams
+[hotwire-generators]: https://github.com/rails/rails/blob/d5b9618da1ac60c674e8a27c3ab4e33742e9aa9b/railties/lib/rails/generators/app_base.rb#L327-L331
+
+Turbo Streaming updates to the document
+---
+
+On the client-side, [Turbo Drive][] monitors our page's `submit` events,
+and intervenes whenever `<form>` elements are  submitted. During
+`<form>` submissions, Turbo Drive will ensure that the resulting HTTP
+requests are transmitted with the [Accept: text/vnd.turbo-stream.html,
+text/html, application/xhtml+xml][Accept] header.
+
+On the server-side, [Turbo Rails][] handles requests with `Accept:
+text/vnd.turbo-stream.html, text/html, application/xhtml+xml` by
+categorizing them with the `turbo_stream` format in the same way that
+Rails transforms `Accept: text/html` requests into an `html` format or
+`Accept: application/json` requests into a `json` format.
+
+Having a dedicated `turbo_stream` format affords Turbo Rails
+applications with the full suite of Rails' rendering of capabilities.
+For example, we can leverage the dedicated `turbo_stream` rendering
+format by modifying our controller code to render the
+`previews/create.turbo_stream.erb` template when responding to requests
+with the Turbo Stream [Accept][] header:
+
+```diff
+--- a/app/controllers/previews_controller.rb
++++ b/app/controllers/previews_controller.rb
+   def create
+     @preview = Article.new(article_params)
+
+-    redirect_to new_article_url(article: @preview.attributes)
++    respond_to do |format|
++      format.html { redirect_to new_article_url(article: @preview.attributes) }
++      format.turbo_stream
++    end
+   end
+```
+
+The template for the `articles#create` action (declared in
+`app/views/previews/create.turbo_stream.erb`) embeds our
+`articles/article` partial into a `<turbo-stream>` element:
+
+```html+erb
+<%= turbo_stream.update "article_preview" do %>
+  <%= render partial: "articles/article", object: @preview, as: :article %>
+<% end %>
+```
+
+We're using the [Turbo Rails]-provided `turbo_stream` helper to generate
+our `<turbo-stream>` elements. The [update][] action is most appropriate
+for our use case, since it will replace the descendants of the targeted
+element while retaining the element itself.
+
+Since we're hard-coding the `<turbo-stream>` element's [target][]
+attribute to `article_preview`, we're coupling our template to the
+requesting page's structure and naming. If we were to pass the
+`article_preview` along in the request, we could make our response more
+flexible _and_ limit the appearance of that value to a single place: the
+`article/form` partial. We can pass the identifier value along by
+encoding it into the URL as the `render_into` query parameter:
+
+```diff
+--- a/app/views/articles/_form.html.erb
++++ b/app/views/articles/_form.html.erb
+   <div class="actions">
+     <%= form.submit %>
+     <%= form.button "Preview Article", name: "_method", value: "post",
+-          formaction: previews_path %>
++          formaction: previews_path(render_into: "article_preview") %>
+   </div>
+ <% end %>
+```
+
+Then, we'll change our response template to read the `"article_preview"`
+value from the `params[:render_into]` key:
+
+```diff
+- <%= turbo_stream.update "article_preview" do %>
++ <%= turbo_stream.update params[:render_into] do %>
+    <%= render partial: "articles/article", object: @preview, as: :article %>
+  <% end %>
+```
+
+Let's review!
+---
+
+At this point, our end-users can draft an `Article` and can preview
+their changes by clicking on a `Preview Article` button to request the
+server-rendered HTML version.
+
+[Hotwire]: https://hotwire.dev/
+[Turbo Drive]: https://turbo.hotwire.dev/handbook/drive
+[Accept]: https://turbo.hotwire.dev/handbook/streams#streaming-from-http-responses
+[Turbo Rails]: https://github.com/hotwired/turbo-rails
+[turbo-stream]: https://turbo.hotwire.dev/handbook/streams
+[update]: https://turbo.hotwire.dev/reference/streams#update
+[target]: https://turbo.hotwire.dev/handbook/streams#stream-messages-and-actions
