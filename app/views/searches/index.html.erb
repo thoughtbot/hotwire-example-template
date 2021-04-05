@@ -1,0 +1,9 @@
+<h1>Results</h1>
+
+<ul>
+  <% @messages.each do |message| %>
+    <li>
+      <%= link_to highlight(message.body, params[:query]), message_path(message) %>
+    </li>
+  <% end %>
+</ul>

@@ -12,6 +12,17 @@
   </head>
 
   <body>
-    <%= yield %>
+    <header>
+      <form action="<%= searches_path %>">
+        <label for="search_query">Query</label>
+        <input id="search_query" name="query" type="search">
+
+        <button>
+          Search
+        </button>
+      </form>
+    </header>
+
+    <main><%= yield %></main>
   </body>
 </html>
