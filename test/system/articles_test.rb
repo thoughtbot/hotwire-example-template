@@ -50,7 +50,6 @@ class ArticlesTest < ApplicationSystemTestCase
 
        World
     TEXT
-    click_on "Preview Article"
 
     within "#article_preview" do
       assert_css "p", text: "Hello,"

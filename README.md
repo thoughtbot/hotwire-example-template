@@ -414,3 +414,211 @@ server-rendered HTML version.
 [turbo-stream]: https://turbo.hotwire.dev/handbook/streams
 [update]: https://turbo.hotwire.dev/reference/streams#update
 [target]: https://turbo.hotwire.dev/handbook/streams#stream-messages-and-actions
+
+## Live previews as you type
+
+Let's enhance that experience even more by cutting out the need to click
+the `Preview Article` button.
+
+[Stimulus][] is one of packages included in the Hotwire suite. [Stimulus
+Controllers][] enable our applications to transform [browser-side
+events][] into function calls on our controller instances by routing
+them as [Stimulus Actions][].
+
+We'll start by declaring a `form` controller to augment our `<form>`
+element. To utilize the `form` [identifier][], we'll declare the
+`app/javascript/controllers/form_controller.js` file:
+
+```javascript
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+}
+```
+
+Then we'll render the `<form>` element with `[data-controller="form"]`
+attribute:
+
+```diff
+--- a/app/views/articles/_form.html.erb
++++ b/app/views/articles/_form.html.erb
+-<%= form_with(model: article) do |form| %>
++<%= form_with(model: article, data: { controller: "form" }) do |form| %>
+    <% if article.errors.any? %>
+      <div id="error_explanation">
+        <h2><%= pluralize(article.errors.count, "error") %> prohibited this article from being saved:</h2>
+```
+
+To grant direct access to the `<button>` element's `HTMLButtonElement`
+instance, we'll make our `form` controller aware of it by declaring
+`[data-form-target="preview"]` attribute on the on the `<button>`:
+
+```diff
+--- a/app/views/articles/_form.html.erb
++++ b/app/views/articles/_form.html.erb
+   <div class="actions">
+     <%= form.submit %>
+     <%= form.button "Preview Article", formaction: previews_path(render_into: "article_preview"),
+-          name: "_method", value: "post" %>
++          name: "_method", value: "post",
++          data: { form_target: "preview" } %>
+   </div>
+ <% end %>
+```
+
+In our controller, we'll add support for accessing the
+`HTMLButtonElement` instance through the `previewTarget` property by
+declaring `"preview"` as a [Stimulus Target][]:
+
+```diff
+--- b/app/javascript/controllers/form_controller.js
++++ b/app/javascript/controllers/form_controller.js
+  import { Controller } from "@hotwired/stimulus"
+
+  export default class extends Controller {
++   static get targets() { return [ "preview" ] }
+  }
+```
+
+Whenever the contents of `<input>`, `<select>`, or `<textarea>`
+elements' values change, browsers fire an [input][] event. To route
+those events as [Stimulus Actions][], we'll declare
+`[data-action="input->form#preview"]` on the `<form>` element:
+
+```diff
+--- a/app/views/articles/_form.html.erb
++++ b/app/views/articles/_form.html.erb
+-<%= form_with(model: article, data: { controller: "form" }) do |form| %>
++<%= form_with(model: article, data: { controller: "form", action: "input->form#preview" }) do |form| %>
+    <% if article.errors.any? %>
+      <div id="error_explanation">
+        <h2><%= pluralize(article.errors.count, "error") %> prohibited this article from being saved:</h2>
+```
+
+Whenever any `<form>` element descendant fires an [input][] event,
+Stimulus will respond by calling the `preview()` method in the `form`
+controller (as instructed by the directive declared in the
+`form[data-action]` attribute).
+
+The `preview()` action handles the event by finding the element
+annotated with the `[data-form-target="preview"]` attribute (in this
+case, our `Preview Post` button), and programmatically clicking it.
+
+```diff
+--- b/app/javascript/controllers/form_controller.js
++++ b/app/javascript/controllers/form_controller.js
+  import { Controller } from "@hotwired/stimulus"
+
+  export default class extends Controller {
+    static get targets() { return [ "preview" ] }
++
++   preview() {
++     this.previewTarget.click()
++   }
+  }
+```
+
+When end-users visit the application with JavaScript-enabled browsers,
+their changes to the `<form>` fields will submit the `<form>`
+automatically.
+
+In the spirit of progressive enhancement, we'll want to ensure that the
+feature gracefully degrades when JavaScript is unavailable. To do so,
+we'll make sure that the `Preview Post` is _always_ rendered to the
+page. Then whenever JavaScript is available, we'll hide it. We'll extend
+the `form` controller to manage the `<button>` element's visibility.
+
+In the absence of JavaScript, Turbo won't have an opportunity to inject
+the `Accept: text/vnd.turbo-stream.html` into the `Accept` header, so
+requests made by submitting the `<form>` will have the `Accept:
+text/html` header. When those requests are handled by our server, the
+response will redirect like it did before we introduced any
+`turbo_stream`-specific code.
+
+During the `form` controller's lifecycle, Stimulus invokes the
+[connect()][] function. Once the controller is connected, we can hide
+the `<button>` by annotating it with the [hidden][] attribute:
+
+```diff
+  import { Controller } from "@hotwired/stimulus"
+
+  export default class extends Controller {
+   static get targets() { return [ "preview" ] }
++
++   connect() {
++     this.previewTarget.hidden = true
++   }
+
+    preview() {
+      this.previewTarget.click()
+    }
+  }
+```
+
+Improving even further
+---
+
+For example, if we want to guard against flooding our clients and
+servers with extraneous requests whenever a swift keyboardist quickly
+enters text, it would be worthwhile to [debounce][] preview submissions:
+
+```diff
+--- a/app/javascript/controllers/form_controller.js
++++ b/app/javascript/controllers/form_controller.js
+@@ -1,8 +1,13 @@
+ import { Controller } from "@hotwired/stimulus"
++import debounce from "https://cdn.skypack.dev/lodash.debounce"
+
+ export default class extends Controller {
+   static get targets() { return [ "preview" ] }
+
++  initialize() {
++    this.preview = debounce(this.preview.bind(this), 300)
++  }
++
+   connect() {
+     this.previewTarget.hidden = true
+   }
+
+   preview() {
+     this.previewTarget.click()
+   }
+ }
+```
+
+Wrapping up
+---
+
+We've built an Article drafting experience that provides end-users with
+a preview of the final version, live as they type. The experience relies
+on Turbo Streams and Stimulus to progressively enhance tools and
+concepts built directly into browsers, and will gracefully degrade to
+relying upon HTML and HTTP in scenarios where JavaScript is unavailable.
+
+Our implementation is light on JavaScript code, never encodes our
+`Article` records into JSON representations, and doesn't include a
+single line of application-specific code calling to [XMLHttpRequest][]
+or [fetch][], in spite of sourcing all of its HTML's structure and data
+from the server.
+
+These omissions are at the core of Hotwire's value proposition. Turbo,
+specifically, demonstrates that applications can treat `<form>` elements
+as declarative HTML alternatives to imperative Asynchronous JavaScript
+and XML (<abbr title="Asynchronous JavaScript and XML">AJAX</abbr>)
+invocations. They sit within a page's document, inert and ready to be
+executed at a moment's notice by end-users. An application's `<form>`
+elements are the bedrock for any and all Hotwire-augmented end-user
+experiences.
+
+[browser-side events]: https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events
+[stimulus]: https://stimulus.hotwire.dev
+[Stimulus Controllers]: https://stimulus.hotwire.dev/reference/controllers
+[Stimulus Actions]: https://stimulus.hotwire.dev/reference/actions
+[identifier]: https://stimulus.hotwire.dev/reference/controllers#identifiers
+[Stimulus Target]: https://stimulus.hotwire.dev/reference/targets#properties
+[connect()]: https://stimulus.hotwire.dev/reference/lifecycle-callbacks#connection
+[input]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/input_event
+[hidden]: https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/hidden
+[debounce]: https://docs-lodash.com/v4/debounce/
+[XMLHttpRequest]: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+[fetch]: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API

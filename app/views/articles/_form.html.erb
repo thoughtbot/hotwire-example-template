@@ -1,4 +1,4 @@
-<%= form_with(model: article) do |form| %>
+<%= form_with(model: article, data: { controller: "form", action: "input->form#preview" }) do |form| %>
   <% if article.errors.any? %>
     <div id="error_explanation">
       <h2><%= pluralize(article.errors.count, "error") %> prohibited this article from being saved:</h2>
@@ -26,6 +26,7 @@
   <div class="actions">
     <%= form.submit %>
     <%= form.button "Preview Article", formaction: previews_path(render_into: "article_preview"),
-          name: "_method", value: "post" %>
+          name: "_method", value: "post",
+          data: { form_target: "preview" } %>
   </div>
 <% end %>
