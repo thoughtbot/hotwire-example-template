@@ -7,7 +7,7 @@
 
   <template data-leaflet-target="template">
     <% locations.each do |location| %>
-      <%= tag.div id: dom_id(location, :marker) do %>
+      <%= link_to location_path(location), id: dom_id(location, :marker) do %>
         <span class="sr-only"><%= location.name %></span>
         <%= inline_svg_tag "marker", class: "h-8 w-8" %>
       <% end %>

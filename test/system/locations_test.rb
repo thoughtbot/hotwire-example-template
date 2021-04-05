@@ -75,6 +75,22 @@ class LocationsTest < ApplicationSystemTestCase
     end
   end
 
+  test "renders the location on the map alongside the rest of its information" do
+    union_square, columbus_circle = locations(:union_square, :columbus_circle)
+
+    visit locations_path
+    within_section("Map") { click_on union_square.name }
+
+    within_section union_square.name do
+      assert_link href: location_path(union_square)
+      assert_no_text href: location_path(columbus_circle)
+    end
+    within_section "Map" do
+      assert_link href: location_path(union_square)
+      assert_no_link href: location_path(columbus_circle)
+    end
+  end
+
   def zoom_in(times = 1.times)
     times.each { click_on "Zoom in" }
     wait_for_animation

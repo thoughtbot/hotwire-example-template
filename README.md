@@ -877,3 +877,80 @@ our `<template data-leaflet-target="template">` element's content:
 [Feature]: https://tools.ietf.org/html/rfc7946#section-3.2
 [inline_svg_tag]: https://twitter.com/georgeclaghorn/status/1430211569212854272/photo/1
 [Turbo-capable `<a>` element]: https://turbo.hotwire.dev/handbook/introduction#turbo-drive%3A-navigate-within-a-persistent-process
+
+## Navigating from a list to a single Location
+
+Now that our map can navigate from a list of Locations to a single
+Location, let's render the map as part of our `locations#show` action.
+
+To start, we'll render our `locations/leaflet` partial from without our
+`locations/show` template, once again passing in the
+`Rails.configuration.x.leaflet` value as the `tile_layer` partial-local
+variable:
+
+```diff
+--- a/app/views/locations/show.html.erb
++++ b/app/views/locations/show.html.erb
+ <p id="notice"><%= notice %></p>
+
++<%= render partial: "locations/leaflet", locals: {
++  locations: [ @location ],
++  tile_layer: Rails.configuration.x.leaflet,
++} %>
+
+ <%= render @location %>
+```
+
+```diff
+--- a/app/views/locations/show.json.jbuilder
++++ b/app/views/locations/show.json.jbuilder
++json.type "FeatureCollection"
++json.features [ @location ], partial: "locations/location", as: :location
+```
+
+Next, we'll create a `BoundingBox` instance in our controller action
+and assign it to the `@bounding_box` instance variable:
+
+```diff
+--- a/app/controllers/locations_controller.rb
++++ b/app/controllers/locations_controller.rb
+   def show
++    @bounding_box = BoundingBox.containing([ @location ])
+   end
+```
+
+Then we'll encode the value into the GeoJSON:
+
+```diff
+--- a/app/views/locations/show.json.jbuilder
++++ b/app/views/locations/show.json.jbuilder
+ json.type "FeatureCollection"
+ json.features [ @location ], partial: "locations/location", as: :location
++json.bbox @bounding_box.to_a
+```
+
+```diff
+--- a/app/views/locations/show.html.erb
++++ b/app/views/locations/show.html.erb
+ <p id="notice"><%= notice %></p>
+
+ <%= render partial: "locations/leaflet", locals: {
+   locations: [ @location ],
++  geo_json_layer: render(template: "locations/show", formats: :json),
+   tile_layer: Rails.configuration.x.leaflet,
+ } %>
+
+ <%= render @location %>
+```
+
+```diff
+--- a/app/views/locations/_leaflet.html.erb
++++ b/app/views/locations/_leaflet.html.erb
+   <template data-leaflet-target="template">
+     <% locations.each do |location| %>
+-      <%= tag.div id: dom_id(location, :marker) do %>
++      <%= link_to location_path(location), id: dom_id(location, :marker) do %>
+         <span class="sr-only"><%= location.name %></span>
+         <%= inline_svg_tag "marker", class: "h-8 w-8" %>
+       <% end %>
+```

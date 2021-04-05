@@ -16,6 +16,7 @@ class LocationsController < ApplicationController
 
   # GET /locations/1 or /locations/1.json
   def show
+    @bounding_box = BoundingBox.containing([ @location ])
   end
 
   # GET /locations/new
