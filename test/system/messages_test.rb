@@ -41,7 +41,7 @@ class MessagesTest < ApplicationSystemTestCase
     assert_text "Message was successfully destroyed"
   end
 
-  test "searches for Messages based on their body content" do
+  test "searches for Messages based on their body content, without changing the current page" do
     monday, last_monday, two_mondays_ago = messages(:from_0_days_ago, :from_7_days_ago, :from_14_days_ago)
     yesterday, last_sunday = messages(:from_1_days_ago, :from_8_days_ago)
 
@@ -54,6 +54,13 @@ class MessagesTest < ApplicationSystemTestCase
       assert_text two_mondays_ago.body
       assert_no_text yesterday.body
       assert_no_text last_sunday.body
+    end
+    within_section "Message" do
+      assert_text monday.body
+      assert_text last_monday.body
+      assert_text two_mondays_ago.body
+      assert_text yesterday.body
+      assert_text last_sunday.body
     end
   end
 end
