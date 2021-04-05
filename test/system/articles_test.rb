@@ -40,4 +40,27 @@ class ArticlesTest < ApplicationSystemTestCase
 
     assert_text "Article was successfully destroyed"
   end
+
+  test "the new Article form provides a live-preview of how the text will be rendered" do
+    visit new_article_path
+
+    fill_in "Content", with: <<~TEXT
+       Hello,
+
+
+       World
+    TEXT
+    click_on "Preview Article"
+
+    within "#article_preview" do
+      assert_css "p", text: "Hello,"
+      assert_css "p", text: "World"
+    end
+
+    click_on "Create Article"
+
+    assert_text "Article was successfully created."
+    assert_css "p", text: "Hello,"
+    assert_css "p", text: "World"
+  end
 end

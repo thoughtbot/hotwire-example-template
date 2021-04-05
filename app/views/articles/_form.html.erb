@@ -16,7 +16,16 @@
     <%= form.text_area :content %>
   </div>
 
+  <div class="field">
+    <strong>Preview:</strong>
+    <div id="article_preview">
+      <%= render partial: "articles/article", object: article %>
+    </div>
+  </div>
+
   <div class="actions">
     <%= form.submit %>
+    <%= form.button "Preview Article", formaction: previews_path,
+          name: "_method", value: "post" %>
   </div>
 <% end %>

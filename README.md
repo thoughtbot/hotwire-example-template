@@ -98,3 +98,198 @@ crucial, they're implementation details that we can ignore for the sake
 of this example.
 
 [scaffolding]: https://edgeguides.rubyonrails.org/getting_started.html#mvc-and-you-generating-a-model
+
+## Previewing our changes
+
+<abbr title="Hyper-text transfer protocol">HTTP</abbr> request-response
+exchanges and full <abbr title="Hyper-text markup language">HTML</abbr>
+documents will serve as a stable foundation for the feature.
+
+Let's implement it through `<form>` submissions that are handled by Rails'
+router, controller, and view layers. The HTTP response will redirect
+_back_ to the `Article` form, with the contents encoded into the URL as
+a query parameter, and rendered as a preview of a published `Article`.
+
+In this first version, the application doesn't make use of **any**
+Hotwire concepts.
+
+First, let's introduce a `:create` route that handles `POST` requests to
+generate `Article` previews:
+
+```diff
+--- a/config/routes.rb
++++ b/config/routes.rb
+ Rails.application.routes.draw do
+   resources :articles
++  resources :previews, only: :create
+   # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
+ end
+```
+
+Next, we'll declare a `<button>` element within the `article/form`
+partial's `<form>` element to submit to the new `POST /previews` route:
+
+```diff
+--- a/app/views/articles/_form.html.erb
++++ b/app/views/articles/_form.html.erb
+   <div class="actions">
+     <%= form.submit %>
++    <%= form.button "Preview Article", formaction: previews_path %>
+   </div>
+ <% end %>
+```
+
+The `<button>` element affords an alternative means of submitting the
+form by declaring a [formaction="/previews"][button-formaction]
+attribute. Setting `[formaction="/previews"]` overrides _where_ the
+`<form>` submits to when the `<button>` is clicked, enabling the
+secondary `<button>` to supplement the primary submission `<button>`,
+which continues to submit to the route specified by the `<form
+action="/articles">` element's `[action]` attribute when clicked.
+
+To ensure that clicking the `<button>` submits a `POST` request,
+regardless of the `<form method="…">` attribute or a [Rails-generated
+`<input type="hidden" name="_method" value="…">` element][_method],
+invoke `form.method` with `name:` and `value:` options:
+
+```diff
+--- a/app/views/articles/_form.html.erb
++++ b/app/views/articles/_form.html.erb
+   <div class="actions">
+     <%= form.submit %>
+-    <%= form.button "Preview Article", formaction: previews_path %>
++    <%= form.button "Preview Article", formaction: previews_path,
++          name: "_method", value: "post" %>
+   </div>
+ <% end %>
+```
+
+The `PreviewsController` declared in
+`app/controllers/previews_controller.rb` handles the `POST /previews`
+request by constructing an instance of an `Article` from `params`
+corresponding to the `<form>` element's submitted fields, then redirects
+_back_ to the `GET /articles/new` route:
+
+```ruby
+class PreviewsController < ApplicationController
+  def create
+    @preview = Article.new(article_params)
+
+    redirect_to new_article_url(article: @preview.attributes)
+  end
+
+  private
+
+  def article_params
+    params.require(:article).permit(:content)
+  end
+end
+```
+
+When redirecting to the `GET /articles/new` route, we'll encode the
+`content` value into URL query parameters by passing the `Hash` returned
+by [Article#attributes][attributes] to the `new_article_url` under the
+`article` scope.
+
+It's worth noting that  according to the [HTTP specification][], there
+are no limits on the length of a URI:
+
+> The HTTP protocol does not place any a priori limit on the length of
+> a URI. Servers MUST be able to handle the URI of any resource they
+> serve, and SHOULD be able to handle URIs of unbounded length if they
+> provide GET-based forms that could generate such URIs.
+>
+> - 3.2.1 General Syntax
+
+In practice, [conventional wisdom][] suggests that URLs over 2,000
+characters are risky.
+
+[HTTP specification]: https://tools.ietf.org/html/rfc2616#section-3.2.1
+[conventional wisdom]: https://stackoverflow.com/a/417184
+
+To read those values and pass them along to the `Article` instance
+constructed by the `articles#new` action, we'll need to make some tweaks
+to the `ArticlesController#article_params` and `ArticlesController#new`
+methods so that the `articles#new` action supports reading from query
+parameters when they're present:
+
+```diff
+--- a/app/controllers/articles_controller.rb
++++ b/app/controllers/articles_controller.rb
+@@ -12,7 +12,7 @@ class ArticlesController < ApplicationController
+
+   # GET /articles/new
+   def new
+-    @article = Article.new
++    @article = Article.new(article_params)
+   end
+
+   # GET /articles/1/edit
+@@ -53,6 +53,6 @@ class ArticlesController < ApplicationController
+
+     # Only allow a list of trusted parameters through.
+     def article_params
+-      params.require(:article).permit(:content)
++      params.fetch(:article, {}).permit(:content)
+     end
+ end
+```
+
+The `Article` record assigned to the `@article` instance variable is
+eventually passed to the `articles/form` partial and made available
+through the `article` partial-local variable. Within the `articles/form`
+partial, render the `articles/article` partial using the pre-populated
+`article` reference:
+
+```diff
+--- a/app/views/articles/_form.html.erb
++++ b/app/views/articles/_form.html.erb
+   </div>
+
++  <div class="field">
++    <strong>Preview:</strong>
++    <div id="article_preview">
++      <%= render partial: "articles/article", object: article %>
++    </div>
++  </div>
++
+   <div class="actions">
+ <% end %>
+```
+
+To ensure a consistent structure between the `articles#show` and the
+`articles/content` partial rendered within the `articles#new` template,
+we'll change the `articles/article` partial to also render the
+`articles/content` partial.
+
+```diff
+--- a/app/views/articles/_article.html.erb
++++ b/app/views/articles/_article.html.erb
+ <div id="<%= dom_id article %>" class="scaffold_record">
+   <p>
+     <strong>Content:</strong>
+-    <%= article.content %>
++    <%= render partial: "articles/content", object: article.content %>
+   </p>
+```
+
+The `app/views/articles/_content.html.erb` partial will serve as an
+example of server-side rendering. In our case, we'll transform the
+`content` into HTML by passing its plain-text value to Action View's
+[simple_format][] helper:
+
+```html+erb
+<%= simple_format content %>
+```
+
+The `#simple_format` view helper wraps any text separate by two newlines
+(`\n\n`) in `<p>` elements.
+
+We're being intentional minimal here. If you're feeling imaginative,
+consider an `articles/content` partial with more a complicated set of
+transformations (like Markdown parsing or other rich-text styling).
+
+[button-formaction]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formaction
+[_method]: https://edgeguides.rubyonrails.org/form_helpers.html#how-do-forms-with-patch-put-or-delete-methods-work-questionmark
+[attributes]: https://edgeapi.rubyonrails.org/classes/ActiveRecord/AttributeMethods.html#method-i-attributes
+[simple_format]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/TextHelper.html#method-i-simple_format
