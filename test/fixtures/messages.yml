@@ -1,7 +1,7 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  body: MyText
-
-two:
-  body: MyText
+<% (0..365).each do |number| %>
+from_<%= number %>_days_ago:
+  body: Today is <%= (Date.civil(2021, 4, 5) - number.days).strftime("%A %d, %B %Y") %>!
+  created_at: <%= Date.civil(2021, 4, 5) - number.days %>
+<% end %>
