@@ -1,9 +1,11 @@
-<h1>Results</h1>
+<turbo-frame id="<%= params.fetch(:turbo_frame, "search_results") %>">
+  <h1>Results</h1>
 
-<ul>
-  <% @messages.each do |message| %>
-    <li>
-      <%= link_to highlight(message.body, params[:query]), message_path(message) %>
-    </li>
-  <% end %>
-</ul>
+  <ul>
+    <% @messages.each do |message| %>
+      <li>
+        <%= link_to highlight(message.body, params[:query]), message_path(message) %>
+      </li>
+    <% end %>
+  </ul>
+</turbo-frame>
