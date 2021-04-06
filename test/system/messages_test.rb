@@ -63,4 +63,22 @@ class MessagesTest < ApplicationSystemTestCase
       assert_text last_sunday.body
     end
   end
+
+  test "limits the visibility of the Search Results based on the field's state" do
+    visit(messages_path)
+
+    assert_no_selector :section, "Results"
+
+    click_on "Search"
+
+    assert_no_selector :section, "Results"
+
+    fill_in("Query", with: "Today").then { click_on "Search" }
+
+    assert_selector :section, "Results"
+
+    fill_in("Query", with: "   ").then { click_on "Search" }
+
+    within_section("Results") { assert_no_link }
+  end
 end
