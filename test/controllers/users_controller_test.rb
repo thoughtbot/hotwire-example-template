@@ -24,8 +24,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show user" do
-    get user_url(@user)
-    assert_response :success
+    get(user_url(@user)).then                 { assert_response :success }
+    get(user_url(@user.id)).then              { assert_response :success }
+    get(user_url(@user.username)).then        { assert_response :success }
+    get(user_url("@" + @user.username)).then  { assert_response :success }
   end
 
   test "should get edit" do

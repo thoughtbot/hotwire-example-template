@@ -1,7 +1,7 @@
 <div id="<%= dom_id message %>" class="scaffold_record">
   <p>
     <strong>Content:</strong>
-    <%= message.content %>
+    <%= highlight(message.content.body.to_html, /\B\@(\w+)/) { |handle| link_to handle, user_path(handle) } %>
   </p>
 
   <p>
