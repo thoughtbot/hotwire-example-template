@@ -1,4 +1,5 @@
-<%= form_with(model: message, data: { controller: "mentions" }) do |form| %>
+<%= form_with(model: message, data: { controller: "mentions", action: "trix-change->mentions#expand",
+                                      mentions_word_pattern_value: /^@(.*?)$/.source, mentions_break_pattern_value: /\s/.source }) do |form| %>
   <% if message.errors.any? %>
     <div id="error_explanation">
       <h2><%= pluralize(message.errors.count, "error") %> prohibited this message from being saved:</h2>
@@ -14,6 +15,8 @@
   <div class="field">
     <%= form.label :content %>
     <%= form.rich_text_area :content, data: { mentions_target: "editor" } %>
+
+    <button form="new_mention" name="username" data-mentions-target="submit" hidden>Search</button>
   </div>
 
   <div class="actions">
@@ -23,13 +26,9 @@
   <fieldset>
     <legend>Mentions</legend>
 
-    <turbo-frame id="mentions"></turbo-frame>
+    <turbo-frame id="mentions" hidden
+                 data-mentions-target="listbox"></turbo-frame>
   </fieldset>
 <% end %>
 
-<form action="<%= mentions_path %>" data-turbo-frame="mentions">
-  <label for="new_mention_username">Username</label>
-  <input id="new_mention_username" name="username" type="search" autocomplete="username" autocorrect="off">
-
-  <button>Search</button>
-</form>
+<form id="new_mention" action="<%= mentions_path %>" data-turbo-frame="mentions"></form>
