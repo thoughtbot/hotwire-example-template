@@ -163,3 +163,137 @@ that [ActiveRecord::FinderMethods#find][] would.
 [link_to]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/UrlHelper.html#method-i-link_to
 [first!]: https://edgeapi.rubyonrails.org/classes/ActiveRecord/FinderMethods.html#method-i-first-21
 [ActiveRecord::FinderMethods#find]: https://edgeapi.rubyonrails.org/classes/ActiveRecord/FinderMethods.html#method-i-find
+
+## Write-time mentions
+
+So far, our implementation handles "@"-mentioning `User` records based
+on their `username` values. However, by deferring our transformations
+until render-time, we miss out on any database-level constraints or
+guarantees that could prevent linking an "@"-mention to a `User` that
+doesn't exist.
+
+We can do better. Let's `User`-mentions one phase earlier in the
+messaging process: at write-time.
+
+We can continue to rely on the same regular expression to identify
+`@`-prefixed mentions. Instead of using the `highlight` helper to inject
+`<a>` elements into our templates, let's _attach_ the `User` records
+directly to the rich text content.
+
+In order to utilize our "@"-mention `User` query outside of the
+`UsersController`, extract the `User.username_matching_handle` scope
+into `app/models/user.rb`:
+
+```diff
+--- a/app/models/user.rb
++++ b/app/models/user.rb
+ class User < ApplicationRecord
++  scope :username_matching_handle, ->(handle) { where username: handle.delete_prefix("@") }
+ end
+
+--- a/app/controllers/users_controller.rb
++++ b/app/controllers/users_controller.rb
+     def set_user
+       users_with_id = User.where id: params[:id]
+-      users_with_username_matching_handle = User.where username: params[:id].delete_prefix("@")
++      users_with_username_matching_handle = User.username_matching_handle params[:id]
+
+       @user = users_with_id.or(users_with_username_matching_handle).first!
+     end
+```
+
+Next, we'll declare a [before_save][] callback to the `Message` model.
+Prior to writing the record to the database, we'll scan the rich
+content's HTML for "@"-prefixed words. If there is a `User` record whose
+`username` matches the mention, we'll build a [ActionText::Attachment][]
+instance and replace the mention with an HTML representation of that
+attachment. If there are no corresponding `User` records, the mention
+will remain unchanged:
+
+```diff
+--- a/app/models/message.rb
++++ b/app/models/message.rb
+ class Message < ApplicationRecord
+   has_rich_text :content
++
++  before_save do
++    content.body = content.body.to_html.gsub(/\B\@(\w+)/) do |handle|
++      if (user = User.username_matching_handle(handle).first)
++        ActionText::Attachment.from_attachable(user).to_html
++      else
++        handle
++      end
++    end
++  end
+ end
+ end
+```
+
+In order for the `ActionText::Attachment.from_attachable` call to
+transform the `User` into Action Text-compliant HTML, we'll need to mix
+the `ActionText::Attachment` module into the `User` class:
+
+```diff
+--- a/app/models/user.rb
++++ b/app/models/user.rb
+@@ -1,2 +1,13 @@
+ class User < ApplicationRecord
++  include ActionText::Attachable
++
+   scope :username_matching_handle, ->(handle) { where username: handle.delete_prefix("@") }
+ end
+```
+
+[before_save]: https://edgeguides.rubyonrails.org/active_record_callbacks.html#creating-an-object
+[ActionText::Attachment]: https://edgeapi.rubyonrails.org/classes/ActionText/Attachment.html
+[ActionText::Attachable]: https://edgeapi.rubyonrails.org/classes/ActionText/Attachable.html
+
+Rendering attachments
+---
+
+Since mentions are processed by the model, we can remove the
+`messages/message` partial's call to[highlight][], and restore the
+original the `message.content` call:
+
+```diff
+--- a/app/views/messages/_message.html.erb
++++ b/app/views/messages/_message.html.erb
+   <p>
+     <strong>Content:</strong>
+-    <%= highlight(message.content.body.to_html, /^@(.*?)$/) { |handle| link_to handle, user_path(handle) } %>
++    <%= message.content %>
+   </p>
+```
+
+[highlight]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/TextHelper.html#method-i-highlight
+
+In it's place, we'll declare a `users/attachable` partial to serve as
+the template Action Text will use to [transform a `User` attachment into
+HTML][Rendering Attachments]:
+
+```erb
+<%# app/views/users/_attachable.html.erb %>
+
+<%= link_to user_path(user) do %>
+  @<%= user.username %>
+<% end %>
+```
+
+Finally, we'll declare `User#to_attachable_partial_path` to reference
+the `users/attachable` partial:
+
+```diff
+--- a/app/models/user.rb
++++ b/app/models/user.rb
+ class User < ApplicationRecord
+   include ActionText::Attachable
+
+   scope :username_matching_handle, ->(handle) { where username: handle.delete_prefix("@") }
++
++  def to_attachable_partial_path
++    "users/attachable"
++  end
+ end
+```
+
+[Rendering Attachments]: https://edgeguides.rubyonrails.org/action_text_overview.html#rendering-attachments

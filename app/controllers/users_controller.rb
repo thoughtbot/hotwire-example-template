@@ -60,7 +60,7 @@ class UsersController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_user
       users_with_id = User.where id: params[:id]
-      users_with_username_matching_handle = User.where username: params[:id].delete_prefix("@")
+      users_with_username_matching_handle = User.username_matching_handle params[:id]
 
       @user = users_with_id.or(users_with_username_matching_handle).first!
     end
