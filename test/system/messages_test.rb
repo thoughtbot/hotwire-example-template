@@ -46,7 +46,7 @@ class MessagesTest < ApplicationSystemTestCase
     yesterday, last_sunday = messages(:from_1_days_ago, :from_8_days_ago)
 
     visit messages_path
-    fill_in("Query", with: "Monday").then { click_on "Search" }
+    fill_in "Query", with: "Monday"
 
     within_section "Results" do
       assert_text monday.body
@@ -69,15 +69,11 @@ class MessagesTest < ApplicationSystemTestCase
 
     assert_no_selector :section, "Results"
 
-    click_on "Search"
-
-    assert_no_selector :section, "Results"
-
-    fill_in("Query", with: "Today").then { click_on "Search" }
+    fill_in "Query", with: "Today"
 
     assert_selector :section, "Results"
 
-    fill_in("Query", with: "   ").then { click_on "Search" }
+    fill_in "Query", with: "   "
 
     within_section("Results") { assert_no_link }
   end
@@ -86,7 +82,7 @@ class MessagesTest < ApplicationSystemTestCase
     monday, last_monday, two_mondays_ago = messages(:from_0_days_ago, :from_7_days_ago, :from_14_days_ago)
 
     visit messages_path
-    fill_in("Query", with: "Monday").then { send_keys :enter }
+    fill_in "Query", with: "Monday"
     within_section "Results" do
       send_keys(:arrow_down).then { assert_list_box_option monday.body, selected: true }
       send_keys(:arrow_down).then { assert_list_box_option last_monday.body, selected: true }
