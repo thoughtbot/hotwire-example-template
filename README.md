@@ -987,3 +987,40 @@ minimal visual styles to indicate `[aria-selected]` movement
 +
 +[aria-selected="true"]  { outline: 2px dotted black; }
 ```
+
+## Cursor-positioned mentions
+
+style the options with `absolute`
+
+```diff
+--- a/app/views/messages/_form.html.erb
++++ b/app/views/messages/_form.html.erb
+     <%= form.submit %>
+   </div>
+
+-  <fieldset>
+-    <legend>Mentions</legend>
++  <fieldset class="border-0 p-0">
++    <legend class="sr-only">Mentions</legend>
+
+-    <turbo-frame id="mentions" hidden
++    <turbo-frame id="mentions" class="absolute bg-white flex flex-col p-1" hidden
+                  data-mentions-target="listbox"></turbo-frame>
+   </fieldset>
+ <% end %>
+```
+
+use Trix Editor interface to figure out the cursor's position
+
+```diff
+--- a/app/assets/javascripts/controllers/mentions_controller.js
++++ b/app/assets/javascripts/controllers/mentions_controller.js
+     const word = editor.getDocument().toString().slice(start, end)
+     const [ mention ] = word.match(new RegExp(this.wordPatternValue)) || []
+     if (mention) {
++      const { bottom, left } = editor.getClientRectAtPosition(editor.getPosition())
++      this.listboxTarget.style.top = bottom + "px"
++      this.listboxTarget.style.left = left + "px"
++
+       this.toggle(true)
+```

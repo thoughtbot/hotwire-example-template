@@ -28,10 +28,10 @@
     <%= form.submit %>
   </div>
 
-  <fieldset>
-    <legend>Mentions</legend>
+  <fieldset class="border-0 p-0">
+    <legend class="sr-only">Mentions</legend>
 
-    <turbo-frame id="mentions" hidden
+    <turbo-frame id="mentions" class="absolute bg-white flex flex-col p-1" hidden
                  data-mentions-target="listbox"></turbo-frame>
   </fieldset>
 <% end %>

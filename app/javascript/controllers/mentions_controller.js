@@ -24,6 +24,10 @@ export default class extends Controller {
     const mention = findMentionFromCursor(editor, this.wordPatternValue, this.breakPatternValue)
 
     if (mention) {
+      const { bottom, left } = editor.getClientRectAtPosition(editor.getPosition())
+      this.listboxTarget.style.top = bottom + "px"
+      this.listboxTarget.style.left = left + "px"
+
       this.toggle(true)
       this.submitTarget.value = mention
       this.submitTarget.click()
