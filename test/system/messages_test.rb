@@ -53,6 +53,40 @@ class MessagesTest < ApplicationSystemTestCase
     assert_text alice.name
   end
 
+  test "provides choices for a mention" do
+    erin, eve = users(:erin, :eve)
+
+    visit new_message_path
+    find(:rich_text_area, "Content").click
+    send_keys "Hello, @e"
+    2.times { send_keys :arrow_down }.then { send_keys :enter }
+    click_on "Create Message"
+
+    assert_text "Message was successfully created."
+    assert_text "Hello, #{eve.name}"
+    assert_no_text erin.name
+  end
+
+  test "can collapse the mention choices with escape" do
+    visit new_message_path
+    find(:rich_text_area, "Content").click.then { send_keys("Hello, @") }
+
+    within_fieldset("Mentions") { assert_button }
+    send_keys(:arrow_down).then { assert_list_box_option selected: true }
+    send_keys(:escape).then     { assert_no_list_box_option selected: true }
+    within_fieldset("Mentions") { assert_button }
+    send_keys(:escape).then     { within_fieldset("Mentions") { assert_no_button } }
+  end
+
+  test "can collapse the mention choices by moving focus" do
+    visit new_message_path
+    find(:rich_text_area, "Content").click.then { send_keys("Hello, @") }
+
+    within_fieldset("Mentions") { assert_button }
+    send_keys(:tab).then        { assert_no_list_box_option selected: true }
+    within_fieldset("Mentions") { assert_no_button }
+  end
+
   test "renders the mentioned User's name while editing a Message" do
     alice_to_bob = messages(:alice_to_bob)
     bob = users(:bob)
@@ -82,5 +116,17 @@ class MessagesTest < ApplicationSystemTestCase
     click_on("Create Message").then { assert_text "Message was successfully created." }
 
     assert_no_link href: user_path("@xavier")
+  end
+
+  def assert_list_box_option(locator, selected: nil, **options)
+    assert_selector :list_box_option, locator, **options do |element|
+      selected.nil? || element["aria-selected"] == selected.to_s
+    end
+  end
+
+  def assert_no_list_box_option(locator, selected: nil, **options)
+    assert_no_selector :list_box_option, locator, **options do |element|
+      selected.nil? || element["aria-selected"] == selected.to_s
+    end
   end
 end

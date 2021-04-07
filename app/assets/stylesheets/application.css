@@ -13,3 +13,5 @@
  *= require_tree .
  *= require_self
  */
+
+[aria-selected="true"]  { outline: 2px dotted black; }

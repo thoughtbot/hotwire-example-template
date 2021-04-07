@@ -826,3 +826,164 @@ search tools (e.g. PostgresSQL's [full-text searching][] capabilities):
 
 [LIKE]: https://sqlite.org/lang_corefunc.html#like
 [full-text searching]: https://www.postgresql.org/docs/12/textsearch.html
+
+## Keyboard-navigate mentions
+
+import github/combobox-nav via Skypack
+
+[role="combobox"]: https://www.w3.org/TR/wai-aria-1.1/#combobox
+[role="listbox"]: https://www.w3.org/TR/wai-aria-1.1/#listbox
+[Combobox interactions]: https://www.w3.org/TR/wai-aria-practices-1.1/#combobox
+[Combobox attributes]: https://www.w3.org/TR/wai-aria-practices-1.1/#wai-aria-roles-states-and-properties-6
+[Combobox keyboard interactions]: https://www.w3.org/TR/wai-aria-practices-1.1/#keyboard-interaction-6
+
+```diff
+--- a/app/javascript/controllers/mentions_controller.js
++++ b/app/javascript/controllers/mentions_controller.js
+ import { Controller } from "@hotwired/stimulus"
++import Combobox from "https://cdn.skypack.dev/@github/combobox-nav"
+
+ export default class extends Controller {
+```
+
+ensure that the `listboxTarget` has `[role="listbox"]`, and that the
+`editorTarget` toggles between `[role="textbox"]` when inactive and
+`[role="combobox"]` when active.
+
+```diff
+--- a/app/javascript/controllers/mentions_controller.js
++++ b/app/javascript/controllers/mentions_controller.js
+   toggle(expanded) {
+     if (expanded) {
+       this.listboxTarget.hidden = false
++      this.listboxTarget.setAttribute("role", "listbox")
++      this.editorTarget.setAttribute("role", "combobox")
+       this.editorTarget.setAttribute("autocomplete", "username")
+       this.editorTarget.setAttribute("autocorrect", "off")
+     } else {
+       this.listboxTarget.hidden = true
++      this.listboxTarget.removeAttribute("role")
++      this.editorTarget.setAttribute("role", "textbox")
+       this.editorTarget.removeAttribute("autocomplete")
+       this.editorTarget.removeAttribute("autocorrect")
+     }
+   }
+```
+
+ensure that all options have unique `[id]` and `[role="option"]`
+
+```diff
+--- a/app/views/mentions/new.html.erb
++++ b/app/views/mentions/new.html.erb
+ <turbo-frame id="mentions">
+   <% @users.each do |user| %>
+-    <button type="button" name="sgid" value="<%= user.attachable_sgid %>"
++    <button type="button" name="sgid" value="<%= user.attachable_sgid %>" id="<%= dom_id user, :mention %>" role="option"
+             data-action="click->mentions#insert">
+       <%= render partial: user.to_trix_content_attachment_partial_path, object: user, as: :user %>
+     </button>
+   <% end %>
+```
+
+clear any previous state, then wire up a `Combobox` instance when the
+mentions are expanded, teardown otherwise
+
+```diff
+--- a/app/javascript/controllers/mentions_controller.js
++++ b/app/javascript/controllers/mentions_controller.js
+   toggle(expanded) {
+     if (expanded) {
+       this.listboxTarget.hidden = false
+       this.listboxTarget.setAttribute("role", "listbox")
+       this.editorTarget.setAttribute("autocomplete", "username")
+       this.editorTarget.setAttribute("autocorrect", "off")
+       this.editorTarget.setAttribute("role", "combobox")
++
++      this.combobox?.destroy()
++      this.combobox = new Combobox(this.editorTarget, this.listboxTarget)
++      this.combobox.start()
+     } else {
+       this.listboxTarget.hidden = true
+       this.listboxTarget.removeAttribute("role")
+       this.editorTarget.removeAttribute("autocomplete")
+       this.editorTarget.removeAttribute("autocorrect")
+       this.editorTarget.setAttribute("role", "textbox")
++
++      this.combobox?.destroy()
+     }
+   }
+```
+
+Collapse when `<trix-editor>` element loses focus, when the
+`<trix-editor>` element's cursor moves outside the `@`-prefixed "word",
+or on <kbd>escape</kbd>:
+
+```diff
+--- a/app/views/messages/_form.html.erb
++++ b/app/views/messages/_form.html.erb
+@@ -14,7 +14,12 @@
+
+   <div class="field">
+     <%= form.label :content %>
+-    <%= form.rich_text_area :content, data: { mentions_target: "editor" } %>
++    <%= form.rich_text_area :content, data: { mentions_target: "editor",
++                                              action: "
++                                                keydown->mentions#collapseOnEscape
++                                                keydown->mentions#collapseOnCursorExit
++                                                trix-blur->mentions#collapse
++                                               " } %>
+
+     <button form="new_mention" name="username" data-mentions-target="submit" hidden>Search</button>
+   </div>
+```
+
+implement the actions
+
+```javascript
+// app/javascript/controllers/mentions_controller.js
+
+collapseOnEscape({ key }) {
+  if (key == "Escape") this.collapse()
+}
+
+collapseOnCursorExit({ target: { editor } }) {
+  const mention = findMentionFromCursor(editor, this.wordPatternValue, this.breakPatternValue)
+
+  if (mention) return
+  else this.toggle(false)
+}
+
+collapse() {
+  if (this.editorTarget.hasAttribute("aria-activedescendant")) return
+  else this.toggle(false)
+}
+```
+
+reset state and teardown the `Combobox` instance when disconnected from the page
+
+```diff
+--- a/app/javascript/controllers/mentions_controller.js
++++ b/app/javascript/controllers/mentions_controller.js
+ import { Controller } from "@hotwired/stimulus"
+ import Combobox from "https://cdn.skypack.dev/@github/combobox-nav"
+
+ export default class extends Controller {
+   static get targets() { return [ "editor", "listbox", "submit" ] }
+   static get values() { return { wordPattern: String, breakPattern: String } }
++
++  disconnect() {
++    this.toggle(false)
++  }
+```
+
+minimal visual styles to indicate `[aria-selected]` movement
+
+```diff
+--- a/app/assets/stylesheets/application.css
++++ b/app/assets/stylesheets/application.css
+  *= require_tree .
+  *= require_self
+  */
++
++[aria-selected="true"]  { outline: 2px dotted black; }
+```

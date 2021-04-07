@@ -14,7 +14,12 @@
 
   <div class="field">
     <%= form.label :content %>
-    <%= form.rich_text_area :content, data: { mentions_target: "editor" } %>
+    <%= form.rich_text_area :content, data: { mentions_target: "editor",
+                                              action: "
+                                                keydown->mentions#collapseOnEscape
+                                                keydown->mentions#collapseOnCursorExit
+                                                trix-blur->mentions#collapse
+                                               " } %>
 
     <button form="new_mention" name="username" data-mentions-target="submit" hidden>Search</button>
   </div>

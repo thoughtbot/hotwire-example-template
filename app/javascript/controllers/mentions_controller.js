@@ -1,8 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
+import Combobox from "https://cdn.skypack.dev/@github/combobox-nav"
 
 export default class extends Controller {
   static get targets() { return [ "editor", "listbox", "submit" ] }
   static get values() { return { wordPattern: String, breakPattern: String } }
+
+  disconnect() {
+    this.toggle(false)
+  }
 
   // Actions
 
@@ -27,17 +32,43 @@ export default class extends Controller {
     }
   }
 
+  collapseOnEscape({ key }) {
+    if (key == "Escape") this.collapse()
+  }
+
+  collapseOnCursorExit({ target: { editor } }) {
+    const mention = findMentionFromCursor(editor, this.wordPatternValue, this.breakPatternValue)
+
+    if (mention) return
+    else this.toggle(false)
+  }
+
+  collapse() {
+    if (this.editorTarget.hasAttribute("aria-activedescendant")) return
+    else this.toggle(false)
+  }
+
   // Private
 
   toggle(expanded) {
     if (expanded) {
       this.listboxTarget.hidden = false
+      this.listboxTarget.setAttribute("role", "listbox")
+      this.editorTarget.setAttribute("role", "combobox")
       this.editorTarget.setAttribute("autocomplete", "username")
       this.editorTarget.setAttribute("autocorrect", "off")
+
+      this.combobox?.destroy()
+      this.combobox = new Combobox(this.editorTarget, this.listboxTarget)
+      this.combobox.start()
     } else {
       this.listboxTarget.hidden = true
+      this.listboxTarget.removeAttribute("role")
+      this.editorTarget.setAttribute("role", "textbox")
       this.editorTarget.removeAttribute("autocomplete")
       this.editorTarget.removeAttribute("autocorrect")
+
+      this.combobox?.destroy()
     }
   }
 }
