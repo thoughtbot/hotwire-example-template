@@ -954,3 +954,135 @@ Then we'll encode the value into the GeoJSON:
          <%= inline_svg_tag "marker", class: "h-8 w-8" %>
        <% end %>
 ```
+
+## Making our map's navigation a seamless experience
+
+While navigating from the list of Locations to a single Location is
+functional, it's a jarring experience. There is a noticeable flicker in
+the map, and the immediate change in the map's bounds is disorienting.
+If this were implemented as a [single-page application][] (<abbr
+title="Single Page Application">SPA</abbr>), the application would
+preserve the map's state across navigations, which could eliminate the
+flickering and would provide an opportunity to animate from bounding box
+to bounding box.
+
+Luckily, Turbo supports preserving elements across page loads through
+the [data-turbo-permanent][] attribute:
+
+> Designate permanent elements by giving them an HTML `id` and
+> annotating them with `data-turbo-permanent`.
+
+Let's ensure that our Leaflet map's element isn't destroyed between
+navigations:
+
+```diff
+--- a/app/views/locations/_leaflet.html.erb
++++ b/app/views/locations/_leaflet.html.erb
+     <% end %>
+   </template>
+
+-  <article class="w-full h-96" data-leaflet-target="map"></article>
++  <article id="leaflet-map" class="w-full h-96" data-leaflet-target="map" data-turbo-permanent></article>
+
+   <form>
+```
+
+While it might seem as simple as annotating an element with an `[id]`
+and `[data-turbo-permanent]`, we're now responsible for maintaining the
+element's long-lived state. Taking on that responsibility comes with
+several considerations.
+
+First of all, we don't want to re-initialize the map if we already have
+access to one. As a [memoization][] strategy, we'll store the instance
+of our [L.Map][] in a [WeakMap][] value, keyed by the long-lived
+`HTMLElement` referenced by the `this.mapTarget` property. Since the
+element's instance state will span page navigations, it will ferry our
+map forward and backward through the browser's history. We'll check for
+the presence of the memoized instance via [WeakMap.has()][] function:
+
+```diff
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+ import L from "https://cdn.skypack.dev/leaflet@1.6.0"
+ import { Controller } from "@hotwired/stimulus"
+
++const targetsToMaps = new WeakMap
++
+ export default class extends Controller {
+   static get targets() { return [ "bbox", "map", "template" ] }
+   static get values() { return { tileLayer: Object, geoJsonLayer: Object } }
+
+   initialize() {
+-    this.leaflet = L.map(this.mapTarget)
++    this.leaflet = targetsToMaps.get(this.mapTarget) || L.map(this.mapTarget)
++
++    targetsToMaps.set(this.mapTarget, this.leaflet)
+   }
+```
+
+Then we'd need to persist the tile layer:
+
+```diff
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+ import L from "https://cdn.skypack.dev/leaflet@1.6.0"
+ import { Controller } from "@hotwired/stimulus"
+
+ const targetsToMaps = new WeakMap
++const mapsToTileLayers = new WeakMap
+
+ export default class extends Controller {
+   static get targets() { return [ "bbox", "map", "template" ] }
+```
+
+```diff
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+   tileLayerValueChanged({ templateUrl, ...options }) {
+     const layer = L.tileLayer(templateUrl, options)
++    const existingLayer = mapsToTileLayers.get(this.leaflet)
+
+     layer.addTo(this.leaflet).bringToBack()
++    mapsToTileLayers.set(this.leaflet, layer)
++
++    if (existingLayer) {
++      existingLayer.removeFrom(this.leaflet)
++    }
+   }
+```
+
+```diff
+--- a/app/javascript/controllers/leaflet_controller.js
++++ b/app/javascript/controllers/leaflet_controller.js
+   geoJsonLayerValueChanged({ bbox: [ west, south, east, north ], ...featureCollection }) {
+     const { pointToLayer } = this
+     const bounds = L.latLngBounds([ south, west ], [ north, east ])
+     const layer = L.geoJSON(featureCollection, { pointToLayer })
++    const existingLayer = mapsToGeoJsonLayers.get(this.leaflet)
+
+     layer.addTo(this.leaflet).bringToFront()
++    mapsToGeoJsonLayers.set(this.leaflet, layer)
+
+-    this.leaflet.fitBounds(bounds)
++    if (existingLayer) {
++      this.leaflet.once("zoomend", () => existingLayer.removeFrom(this.leaflet))
++      this.leaflet.flyToBounds(bounds)
++    } else {
++      this.leaflet.fitBounds(bounds)
++    }
+   }
+```
+
+By marking the element with `[data-turbo-permanent]` and handling those
+circumstances, we're able to seamlessly animate the map between
+navigations, achieving an SPA-like experience with server-rendered HTML.
+
+[single-page application]: https://developer.mozilla.org/en-US/docs/Glossary/SPA
+[data-turbo-permanent]: https://turbo.hotwire.dev/handbook/building#persisting-elements-across-page-loads
+[fitBounds]: https://leafletjs.com/reference-1.6.0.html#map-fitbounds
+[flyToBounds]: https://leafletjs.com/reference-1.6.0.html#map-flytobounds
+[connect()]: https://stimulus.hotwire.dev/reference/lifecycle-callbacks#connection
+[disconnect()]: https://stimulus.hotwire.dev/reference/lifecycle-callbacks#disconnection
+[memoization]: https://en.wikipedia.org/wiki/Memoization
+[WeakMap]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
+[WeakMap.has()]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap/has
