@@ -47,6 +47,8 @@ class MessagesTest < ApplicationSystemTestCase
     send_keys("Hello, @a").then { click_button alice.name }
     click_on("Create Message").then { assert_text "Message was successfully created." }
 
+    assert_text "Mentioned #{alice.name}"
+
     click_link alice.name
 
     assert_text alice.username

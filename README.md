@@ -1024,3 +1024,46 @@ use Trix Editor interface to figure out the cursor's position
 +
        this.toggle(true)
 ```
+
+## Write-time mentions (revisited)
+
+Accessing User records mentioned in a Message
+
+An [ActionText::RichText][] instance can access its related
+[attachables][] through its [ActionText::Content][]-wrapped `body`
+attribute.
+
+When a `User` is mentioned, they'll be attached to the `Message`
+record's rich text as a `User`, so when iterating through the
+attachables, we'll want to ignore other records that aren't `User`
+instances:
+
+```diff
+--- a/app/models/message.rb
++++ b/app/models/message.rb
+ class Message < ApplicationRecord
+   has_rich_text :content
++
++  def mentioned_users
++    content.body.attachables.select { |attachable| attachable.is_a? User }
++  end
+ end
+```
+
+[ActionText::RichText]: https://edgeapi.rubyonrails.org/classes/ActionText/RichText.html
+[ActionText::Content]: https://edgeapi.rubyonrails.org/classes/ActionText/Content.html
+[attachables]: https://edgeapi.rubyonrails.org/classes/ActionText/Content.html#method-i-attachables
+
+Once the delegation is in place, we can access the related
+`mentioned_users` directly from the `Message` instance:
+
+```diff
+--- a/app/controllers/messages_controller.rb
++++ b/app/controllers/messages_controller.rb
+     if @message.save
+-      redirect_to @message, notice: "Message was successfully created."
++      redirect_to @message, notice: "Message was successfully created. Mentioned #{@message.mentioned_users.pluck(:name).to_sentence}"
+     else
+       render :new, status: :unprocessable_entity
+     end
+```
