@@ -23,6 +23,13 @@
   <fieldset>
     <legend>Mentions</legend>
 
-    <turbo-frame id="mentions" src="<%= mentions_path %>"></turbo-frame>
+    <turbo-frame id="mentions"></turbo-frame>
   </fieldset>
 <% end %>
+
+<form action="<%= mentions_path %>" data-turbo-frame="mentions">
+  <label for="new_mention_username">Username</label>
+  <input id="new_mention_username" name="username" type="search" autocomplete="username" autocorrect="off">
+
+  <button>Search</button>
+</form>

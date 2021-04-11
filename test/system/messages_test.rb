@@ -43,7 +43,8 @@ class MessagesTest < ApplicationSystemTestCase
     alice = users(:alice)
 
     visit new_message_path
-    fill_in_rich_text_area "Content", with: "Hello @alice"
+    fill_in_rich_text_area "Content", with: "Hello "
+    fill_in("Username", with: "alice").then { click_on "Search" }
     within_fieldset("Mentions") { click_button alice.name }
     click_on("Create Message").then { assert_text "Message was successfully created." }
 

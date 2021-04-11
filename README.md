@@ -622,3 +622,105 @@ over the results of the controller's `@users` query:
 
 [load its content asynchronously]: https://turbo.hotwire.dev/handbook/frames#lazily-loading-frames
 [matches the `id`]: https://turbo.hotwire.dev/handbook/introduction#turbo-frames%3A-decompose-complex-pages
+
+## Filtered-out mentions
+
+Now that we're fetching our list of `User` records asynchronously
+on-demand, we have an opportunity to provide end-users with control over
+how the results are filtered.
+
+By declaring a `[src]` value, we're controlling which URL our
+`<turbo-frame>` element initially navigates. Pairing the
+`<turbo-frame>` element with a corresponding `<form>` element, we can
+share that control with our end-users.
+
+First', we'll remove the `[src]` attribute from our `<turbo-frame>`
+element, making it inert upon page-load:
+
+```diff
+--- a/app/views/messages/_form.html.erb
++++ b/app/views/messages/_form.html.erb
+@@ -23,6 +23,13 @@
+   <fieldset>
+     <legend>Mentions</legend>
+
+-    <turbo-frame id="mentions" src="<%= mentions_path %>"></turbo-frame>
++    <turbo-frame id="mentions"></turbo-frame>
+   </fieldset>
+```
+
+Next, we'll [add a `<form>` element to drive our `<turbo-frame>`][].
+We'll declare the `<form>` with `[data-turbo-frame]` attribute that
+matches the `<turbo-frame>` element's `[id]` value, and an `[action]`
+attribute with a value that matches the `<turbo-frame>` element's
+original `[src]` value:
+
+```diff
+--- a/app/views/messages/_form.html.erb
++++ b/app/views/messages/_form.html.erb
+ <% end %>
++
++<form action="<%= mentions_path %>" data-turbo-frame="mentions">
++</form>
+```
+
+Next, we'll declare a `<label>` and `<input>` pairing within the
+`<form>` element so that end-users can enter a query term for filtering
+the `User` records:
+
+```diff
+--- a/app/views/messages/_form.html.erb
++++ b/app/views/messages/_form.html.erb
+ <form action="<%= mentions_path %>" data-turbo-frame="mentions">
++  <label for="new_mention_username">Username</label>
++  <input id="new_mention_username" name="username" type="search" autocomplete="username" autocorrect="off">
++
++  <button>Search</button>
+ </form>
+```
+
+Since we'll be filtering `User` records based on their `username` value,
+we'll declare the `<input type="search">` element with
+[autocomplete="username"][] and [autocorrect="off"][] values.
+
+[add a `<form>` element to drive our `<turbo-frame>`]: https://turbo.hotwire.dev/handbook/frames#targeting-navigation-into-or-out-of-a-frame
+[autocomplete="username"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete#values
+[autocorrect="off"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#autocorrect
+
+Finally, we'll change our `mentions#index` controller action to provide
+the Active Record query with the filter value from the request URL's
+`?username` query parameter:
+
+```diff
+--- a/app/controllers/mentions_controller.rb
++++ b/app/controllers/mentions_controller.rb
+ class MentionsController < ApplicationController
+   def index
+-    @users = User.order(username: :asc)
++    @users = User.order(username: :asc).username_matching_handle params[:username]
+   end
+ end
+```
+
+For simplicity's sake, we'll change our `User.mentioned` scope to rely
+on SQL's [LIKE][]-powered pattern matching:
+
+```diff
+--- a/app/models/user.rb
++++ b/app/models/user.rb
+ class User < ApplicationRecord
+   include ActionText::Attachable
+
+-  scope :username_matching_handle, ->(handle) { where username: handle.delete_prefix("@") }
++  scope :username_matching_handle, ->(handle) { where <<~SQL, handle.delete_prefix("@") + "%" }
++    username LIKE ?
++  SQL
+
+   def to_trix_content_attachment_partial_path
+```
+
+Once implemented, the experience could be improved by more powerful
+search tools (e.g. PostgresSQL's [full-text searching][] capabilities):
+
+[LIKE]: https://sqlite.org/lang_corefunc.html#like
+[full-text searching]: https://www.postgresql.org/docs/12/textsearch.html
