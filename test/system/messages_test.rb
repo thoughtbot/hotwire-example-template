@@ -42,10 +42,28 @@ class MessagesTest < ApplicationSystemTestCase
   test "transforms a mention as a link to the User" do
     alice = users(:alice)
 
-    visit(messages_path).then { click_on "New message" }; sleep 1
+    visit new_message_path
     fill_in_rich_text_area "Content", with: "Hello @alice"
+    within_fieldset("Mentions") { click_button alice.name }
     click_on("Create Message").then { assert_text "Message was successfully created." }
-    click_link(alice.username).then { assert_text alice.name }
+
+    click_link alice.name
+
+    assert_text alice.username
+    assert_text alice.name
+  end
+
+  test "renders the mentioned User's name while editing a Message" do
+    alice_to_bob = messages(:alice_to_bob)
+    bob = users(:bob)
+
+    visit edit_message_path(alice_to_bob)
+
+    within :rich_text_area, "Content" do
+      assert_text alice_to_bob.content.to_plain_text
+      assert_text bob.name
+      assert_no_text bob.username
+    end
   end
 
   test "renders a mention as a link to that User" do
@@ -53,11 +71,13 @@ class MessagesTest < ApplicationSystemTestCase
     bob = users(:bob)
 
     visit message_path(alice_to_bob)
-    click_link(bob.username).then { assert_text bob.name }
+    click_link(bob.name).then { assert_text bob.name }
+
+    assert_text bob.username
   end
 
   test "does not render a mention as a link when the User doesn't exist" do
-    visit new_message_path; sleep 1
+    visit new_message_path
     fill_in_rich_text_area("Content", with: "Hello @xavier")
     click_on("Create Message").then { assert_text "Message was successfully created." }
 

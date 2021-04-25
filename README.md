@@ -297,3 +297,227 @@ the `users/attachable` partial:
 ```
 
 [Rendering Attachments]: https://edgeguides.rubyonrails.org/action_text_overview.html#rendering-attachments
+
+## Draft-time mentions
+
+Our next improvement involves handling `User`-mentions one phase earlier
+than a `Message` record's write-time: at draft-time.
+
+Attaching `User` records to a message draft requires direct access to an
+[Action Text][]-powered `<trix-editor>` element. Our current combination
+of Rails and [Turbo][] doesn't afford our client-side with the tools to
+achieve that level of control, so let's add [Stimulus][] to the mix!
+
+We'll declare our first [Stimulus Controller][] to attach behavior to
+our document's HTML elements.
+
+```javascript
+// app/javascript/controllers/mentions_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+}
+```
+
+The controller will connect to elements that declare a `[data-controller]`
+attribute that contains the `mentions` [identifier][].
+
+Our controller will need direct access to the document's
+[`<trix-editor>`][trix-editor] element. We'll add `editor` to the
+controller's list of [target properties][]:
+
+```diff
++++ a/app/javascript/controllers/mentions_controller.js
++++ b/app/javascript/controllers/mentions_controller.js
+ import { Controller } from "@hotwired/stimulus"
+
+ export default class extends Controller {
++  static get targets() { return [ "editor" ] }
+ }
+```
+
+Once we've declared the controller module, we'll need to annotate the
+HTML so that our controller can attach behavior to the elements. We'll
+declare the `[data-controller="mentions"]` attribute on the
+`/messages/new` page's `<form>` element, and make sure that our
+`<trix-editor>` element declares the `[data-mentions-target="editor"]`
+attribute:
+
+```diff
+--- a/app/views/messages/_form.html.erb
++++ b/app/views/messages/_form.html.erb
+@@ -1,4 +1,4 @@
+-<%= form_with(model: message) do |form| %>
++<%= form_with(model: message, data: { controller: "mentions" }) do |form| %>
+   <% if message.errors.any? %>
+     <div id="error_explanation">
+       <h2><%= pluralize(message.errors.count, "error") %> prohibited this message from being saved:</h2>
+@@ -13,10 +13,22 @@
+
+   <div class="field">
+     <%= form.label :content %>
+-    <%= form.rich_text_area :content %>
++    <%= form.rich_text_area :content, data: { mentions_target: "editor" } %>
+   </div>
+```
+
+We'll render a `<button type="button">` element for each `User` record:
+
+```diff
+--- a/app/views/messages/_form.html.erb
++++ b/app/views/messages/_form.html.erb
+   <div class="actions">
+     <%= form.submit %>
+   </div>
++
++  <fieldset>
++    <legend>Mentions</legend>
++
++    <% User.all.order(username: :asc).each do |user| %>
++      <button type="button">
++        <%= user.name %>
++      </button>
++    <% end %>
++  </div>
+ <% end %>
+```
+
+Next, we'll attach a mention when its corresponding `<button>` element
+is clicked. To do so, we'll declare a `data-` attribute powered
+[Stimulus Action][] comprised of `click` (which corresponds to the
+built-in [click][] event), `mentions` (which corresponds to our
+controller's [identifier][]), and `insert`, which corresponds to the
+name of the method on the controller we'll invoke whenever a `click`
+occurs:
+
+```diff
+--- a/app/views/mentions/new.html.erb
++++ b/app/views/mentions/new.html.erb
+   <% User.all.order(username: :asc).each do |user| %>
+-    <button type="button">
++    <button type="button"
++            data-action="click->mentions#insert">
+       <%= user.name %>
+     </button>
+   <% end %>
+```
+
+Within the `mentions#insert` action, we'll need to create and insert a
+[Trix.Attachment][], reading its `sgid` and `content` options directly
+from the `<button type="button">` element that triggered the `click`
+event:
+
+```diff
+--- a/app/assets/javascripts/controllers/mentions_controller.js
++++ b/app/assets/javascripts/controllers/mentions_controller.js
+ import { Controller } from "@hotwired/stimulus"
+
+ export default class extends Controller {
+   static get targets() { return [ "editor" ] }
++
++  insert({ target: { value, innerHTML } }) {
++    const { editor } = this.editorTarget
++
++    editor.insertAttachment(new Trix.Attachment({ sgid: value, content: innerHTML }))
++  }
++}
+```
+
+We'll be directly encoding the [`sgid` and
+`content`][attachment-properties] into the `<button>` element's [name][]
+and [innerHTML][] properties:
+
+```diff
+--- a/app/views/mentions/new.html.erb
++++ b/app/views/mentions/new.html.erb
+   <% User.all.order(username: :asc).each do |user| %>
+-    <button type="button"
++    <button type="button" name="sgid" value="<%= user.attachable_sgid %>"
+             data-action="click->mentions#insert">
+       <%= user.name %>
+     </button>
+   <% end %>
+```
+
+While the `sgid` value is _always_ significant, the `content` is only
+used for attachment-time rendering, and will be replaced with whatever
+HTML the server resolves the resulting `<action-text-attachment>`
+element to on subsequent viewings.
+
+[Trix.Attachment]: https://github.com/basecamp/trix/tree/1.3.1#inserting-a-content-attachment
+[attachment-properties]: https://edgeguides.rubyonrails.org/action_text_overview.html#rendering-attachments
+[name]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-name
+[innerHTML]: https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML
+
+Re-use the trix content attachment HTML partial
+
+```erb
+<%# app/views/mentions/_mention.html.erb %>
+<%= user.name %>
+```
+
+```diff
+--- a/app/models/user.rb
++++ b/app/models/user.rb
+   scope :username_matching_handle, ->(handle) { where username: handle.delete_prefix("@") }
+
++  def to_trix_content_attachment_partial_path
++    "mentions/mention"
++  end
++
+   def to_attachable_partial_path
+     "users/attachable"
+   end
+```
+
+```diff
+--- a/app/views/users/_attachable.html.erb
++++ b/app/views/users/_attachable.html.erb
+ <%= link_to user_path(user) do %>
+-  @<%= user.username %>
++  <%= render partial: user.to_trix_content_attachment_partial_path, locals: { user: user } %>
+ <% end %>
+
+--- a/app/views/mentions/new.html.erb
++++ b/app/views/mentions/new.html.erb
+   <% User.all.order(username: :asc).each do |user| %>
+     <button type="button" name="sgid" value="<%= user.attachable_sgid %>" data-action="click->mentions#insert">
+-      <%= user.name %>
++      <%= render partial: user.to_trix_content_attachment_partial_path, locals: { user: user } %>
+     </button>
+   <% end %>
+```
+
+Now that we're relying on Action Text and Trix to manage attachments on
+our behalf, it's no longer necessary to extract attachments during the
+creation of the `Message` records themselves, so we let's remove the
+`before_save` block:
+
+```diff
+--- a/app/models/message.rb
++++ b/app/models/message.rb
+ class Message < ApplicationRecord
+   has_rich_text :content
+-
+-  before_save do
+-    content.body = content.body.to_html.gsub(/\B\@(\w+)/) do |handle|
+-      if (user = User.username_matching_handle(handle).first)
+-        ActionText::Attachment.from_attachable(user).to_html
+-      else
+-        handle
+-      end
+-    end
+-  end
+ end
+```
+
+[Action Text]: https://edgeguides.rubyonrails.org/action_text_overview.html#what-is-action-text-questionmark
+[Turbo]: https://turbo.hotwire.dev
+[Stimulus]: https://stimulus.hotwire.dev
+[Stimulus Controller]: https://stimulus.hotwire.dev/handbook/hello-stimulus#it-all-starts-with-html
+[identifier]: https://stimulus.hotwire.dev/reference/controllers#identifiers
+[trix-editor]: https://github.com/basecamp/trix/tree/1.3.1#creating-an-editor
+[target properties]: https://stimulus.hotwire.dev/handbook/building-something-real#defining-the-target
+[Stimulus Action]: https://stimulus.hotwire.dev/handbook/building-something-real#connecting-the-action
+[click]: https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event

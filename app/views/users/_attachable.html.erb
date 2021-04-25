@@ -1,3 +1,3 @@
 <%= link_to user_path(user) do %>
-  @<%= user.username %>
+  <%= render partial: user.to_trix_content_attachment_partial_path, locals: { user: user } %>
 <% end %>
