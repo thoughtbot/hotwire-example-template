@@ -521,3 +521,104 @@ creation of the `Message` records themselves, so we let's remove the
 [target properties]: https://stimulus.hotwire.dev/handbook/building-something-real#defining-the-target
 [Stimulus Action]: https://stimulus.hotwire.dev/handbook/building-something-real#connecting-the-action
 [click]: https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event
+
+## Lazily-loaded mentions
+
+As the `users` table grows, the cost of retrieving and rendering _every_
+`User` record as a `<button>` that creates a mention  will grow with it.
+We can defer that cost until _after_ the initial request by delaying the
+retrieval of those records.
+
+Let's extract our template's `User.all.order(username: :asc)` loop to
+its own controller action and template, then fetch that HTML over HTTP
+with a [Turbo Frame][].
+
+Turbo declares a `<turbo-frame>` [custom element][] that enable
+applications to decompose pages into separate segments that each have
+load and navigation life cycles that operate independently from one
+another.
+
+[Turbo Frame]: https://turbo.hotwire.dev/handbook/frames#lazily-loading-frames
+[custom element]: https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements
+
+First, we'll declare an index route to handle `GET /mentions` requests:
+
+```diff
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -1,4 +1,5 @@
+ Rails.application.routes.draw do
++  resources :mentions, only: :index
+   resources :messages
+   resources :users
+   # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
+```
+
+Next, we'll introduce the corresponding `MentionsController`, and
+declare `@users` to retain a reference the results of the Active Record
+query:
+
+```ruby
+class MentionsController < ApplicationController
+  def index
+    @users = User.all.order(username: :asc)
+  end
+end
+```
+
+Then, we'll remove the loop from the `messages/form` partial into the
+new `mentions/index` template. In it's place, we'll declare a
+`<turbo-frame>` element:
+
+```diff
+--- a/app/views/messages/_form.html.erb
++++ b/app/views/messages/_form.html.erb
+   <fieldset>
+     <legend>Mentions</legend>
+
+-    <% User.all.order(username: :asc).each do |user| %>
+-      <button type="button" name="sgid" value="<%= user.attachable_sgid %>"
+-              data-action="click->mentions#insert">
+-        <%= render partial: user.to_trix_content_attachment_partial_path, locals: { user: user } %>
+-      </button>
+-    <% end %>
++    <turbo-frame id="mentions" src="<%= mentions_path %>"></turbo-frame>
+   </fieldset>
+ <% end %>
+```
+
+Declaring the element with a `[src]` attribute and an empty set of
+descendants directs the element to issue a `GET` request to the provided
+path or URL to [load its content asynchronously][].
+
+It's important that the HTML response from the `GET` request includes a
+`<turbo-frame>` element with an `[id]` attribute that [matches the
+`id`][] of the `<turbo-frame>` element that initiated the request. To
+guarantee parity in response, the `mentions#index` templates renders a
+`<turbo-frame id="mentions">` element:
+
+```diff
+--- /dev/null
++++ b/app/views/mentions/index.html.erb
++<turbo-frame id="mentions">
++</turbo-frame>
+```
+
+Finally, insert the `<fieldset>` element's original contents, looping
+over the results of the controller's `@users` query:
+
+```diff
+--- a/app/views/mentions/index.html.erb
++++ b/app/views/mentions/index.html.erb
+ <turbo-frame id="mentions">
++  <% @users.each do |user| %>
++    <button type="button" name="sgid" value="<%= user.attachable_sgid %>"
++            data-action="click->mentions#insert">
++      <%= render partial: user.to_trix_content_attachment_partial_path, locals: { user: user } %>
++    </button>
++  <% end %>
+ </turbo-frame>
+```
+
+[load its content asynchronously]: https://turbo.hotwire.dev/handbook/frames#lazily-loading-frames
+[matches the `id`]: https://turbo.hotwire.dev/handbook/introduction#turbo-frames%3A-decompose-complex-pages

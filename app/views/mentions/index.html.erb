@@ -1,0 +1,8 @@
+<turbo-frame id="mentions">
+  <% @users.each do |user| %>
+    <button type="button" name="sgid" value="<%= user.attachable_sgid %>"
+            data-action="click->mentions#insert">
+      <%= render partial: user.to_trix_content_attachment_partial_path, locals: { user: user } %>
+    </button>
+  <% end %>
+</turbo-frame>
