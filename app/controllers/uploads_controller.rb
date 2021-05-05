@@ -9,6 +9,10 @@ class UploadsController < ApplicationController
     redirect_to @upload
   end
 
+  def show
+    @upload = Upload.find params[:id]
+  end
+
   private
 
   def upload_params
