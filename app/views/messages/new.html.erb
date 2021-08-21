@@ -1,0 +1,30 @@
+<section>
+  <h1>New message</h1>
+
+  <%= link_to "Back", messages_path %>
+
+  <%= form_with model: @message, class: "grid" do |form| %>
+    <% if form.object.errors.any? %>
+      <output role="alert">
+        <h2><%= pluralize(form.object.errors.count, "error") %> prohibited this record from being saved:</h2>
+
+        <ul>
+          <% form.object.errors.each do |error| %>
+            <li><%= error.full_message %></li>
+          <% end %>
+        </ul>
+      </output>
+    <% end %>
+
+    <%= form.label :recipient %>
+    <%= form.text_field :recipient %>
+
+    <%= form.label :sender %>
+    <%= form.text_field :sender %>
+
+    <%= form.label :content %>
+    <%= form.rich_text_area :content %>
+
+    <button>Send</button>
+  <% end %>
+</section>

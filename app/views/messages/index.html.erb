@@ -1,0 +1,16 @@
+<section>
+  <h1>Messages</h1>
+
+  <%= link_to "New message", new_message_path %>
+
+  <% @messages.each do |message| %>
+    <article>
+      <header>
+        <p>From: <%= message.sender %></p>
+        <p>To: <%= message.recipient %></p>
+      </header>
+
+      <%= message.content %>
+    </article>
+  <% end %>
+</section>
