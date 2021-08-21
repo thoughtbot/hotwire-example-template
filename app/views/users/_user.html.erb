@@ -4,7 +4,12 @@
     <%= user.name %>
   </p>
 
-  <p>
-    <%= link_to "Show this user", user %>
+  <p class="relative">
+    <%= link_to "Show this user", user, class: "peer", aria: { describedby: dom_id(user, :tooltip) } %>
+    <turbo-frame id="<%= dom_id user, :tooltip %>" target="_top" role="tooltip"
+                 src="<%= user_tooltip_path(user, turbo_frame: dom_id(user, :tooltip)) %>"
+                 class="hidden absolute translate-y-[-150%] z-10
+                        peer-hover:block peer-focus:block hover:block focus-within:block"
+    ></turbo-frame>
   </p>
 </div>

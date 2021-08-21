@@ -1,0 +1,10 @@
+<turbo-frame id="<%= params.fetch :turbo_frame, dom_id(@user) %>" target="_top">
+  <div class="relative">
+    <div class="flex gap-2 items-center p-1 bg-black rounded-md text-white">
+      <%= render partial: "users/user", object: @user, formats: :svg %>
+      <strong>Name:</strong>
+      <%= link_to @user.name, @user, class: "text-white" %>
+    </div>
+    <div class="h-2 w-2 bg-black rotate-45 -top-1 -left-2 ml-[50%] relative"></div>
+  </div>
+</turbo-frame>
