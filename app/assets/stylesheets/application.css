@@ -13,3 +13,6 @@
  *= require_tree .
  *= require_self
  */
+
+dialog        { display: none; }
+dialog[open]  { display: initial; }

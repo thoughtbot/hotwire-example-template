@@ -1,9 +1,17 @@
-<section>
+<turbo-frame id="<%= params[:turbo_frame] || dom_id(@message) %>" role="section" target="_top">
   <h1>New message</h1>
 
-  <%= link_to "Back", messages_path %>
+  <%= link_to "Back", messages_path, class: "group-open:hidden" %>
+
+  <form method="dialog" class="hidden group-open:block">
+    <button aria-expanded="true">
+      Back
+    </button>
+  </form>
 
   <%= form_with model: @message, class: "grid" do |form| %>
+    <%= hidden_field_tag "turbo_frame", params[:turbo_frame] %>
+
     <% if form.object.errors.any? %>
       <output role="alert">
         <h2><%= pluralize(form.object.errors.count, "error") %> prohibited this record from being saved:</h2>
@@ -27,4 +35,4 @@
 
     <button>Send</button>
   <% end %>
-</section>
+</turbo-frame>

@@ -7,11 +7,17 @@
     <%= csp_meta_tag %>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.skypack.dev/dialog-polyfill/dist/dialog-polyfill.css">
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
 
   <body>
     <%= yield %>
+
+    <dialog class="group" role="dialog" aria-modal="true"
+            data-controller="dialog" data-action="turbo:frame-load->dialog#showModal">
+      <turbo-frame id="dialog"></turbo-frame>
+    </dialog>
   </body>
 </html>

@@ -11,7 +11,7 @@ class MessagesController < ApplicationController
     @message = Message.new message_params
 
     if @message.save
-      redirect_to messages_url
+      redirect_to messages_url, turbo_frame: "_top"
     else
       render :new, status: :unprocessable_entity
     end

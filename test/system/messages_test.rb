@@ -3,8 +3,8 @@ require "application_system_test_case"
 class MessagesTest < ApplicationSystemTestCase
   test "create a new Message" do
     visit messages_path
-    within(:section, "Messages") { click_on "New message" }
-    within :section, "New message" do
+    within(:section, "Messages") { toggle_disclosure "New message", expand: true }
+    within :modal do
       fill_in "From", with: "Alice"
       fill_in "To", with: "Bob"
       fill_in_rich_text_area "Content", with: "Hello, world"
@@ -19,13 +19,13 @@ class MessagesTest < ApplicationSystemTestCase
 
   test "rejects invalid submissions" do
     visit messages_path
-    within(:section, "Messages") { click_on "New message" }
-    within :section, "New message" do
+    within(:section, "Messages") { toggle_disclosure "New message", expand: true }
+    within :modal do
       fill_in "From", with: "Alice"
       click_on "Send"
     end
 
-    within :section, "New message" do
+    within :modal do
       assert_selector :alert, "To can't be blank"
     end
   end

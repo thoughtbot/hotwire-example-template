@@ -1,7 +1,11 @@
 <section>
   <h1>Messages</h1>
 
-  <%= link_to "New message", new_message_path %>
+  <%= link_to "New message", new_message_path, class: "sm:hidden" %>
+
+  <form action="<%= new_message_path %>" class="hidden sm:block" data-turbo-frame="dialog">
+    <button name="turbo_frame" value="dialog" aria-expanded="false">New message</button>
+  </form>
 
   <% @messages.each do |message| %>
     <article>
