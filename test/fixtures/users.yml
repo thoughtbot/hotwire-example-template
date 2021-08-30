@@ -1,9 +1,40 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  username: 
-  name: 
+DEFAULTS: &DEFAULTS
+  username: $LABEL
+  name: $LABEL
 
-two:
-  username: 
-  name: 
+one:
+  <<: *DEFAULTS
+
+alice:
+  <<: *DEFAULTS
+  name: Alice
+
+bob:
+  <<: *DEFAULTS
+  name: Bob
+
+carol:
+  <<: *DEFAULTS
+  name: Carol
+
+dan:
+  <<: *DEFAULTS
+  name: Dan
+
+erin:
+  <<: *DEFAULTS
+  name: Erin
+
+eve:
+  <<: *DEFAULTS
+  name: Eve
+
+faythe:
+  <<: *DEFAULTS
+  name: Faythe
+
+frank:
+  <<: *DEFAULTS
+  name: Franke
