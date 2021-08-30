@@ -2,3 +2,12 @@
 #   record: name_of_fixture (ClassOfFixture)
 #   name: content
 #   body: <p>In a <i>million</i> stars!</p>
+
+DEFAULTS: &DEFAULTS
+  record: $LABEL (Message)
+
+alice_to_bob:
+  <<: *DEFAULTS
+  name: content
+  body: >
+    <div>Hello, <%= ActionText::FixtureSet.attachment("users", "bob") %></div>

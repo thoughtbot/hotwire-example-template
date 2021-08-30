@@ -2,7 +2,7 @@ require "application_system_test_case"
 
 class MessagesTest < ApplicationSystemTestCase
   setup do
-    @message = messages(:one)
+    @message = messages(:alice_to_bob)
   end
 
   test "visiting the index" do

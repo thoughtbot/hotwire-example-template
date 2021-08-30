@@ -2,7 +2,7 @@ require "test_helper"
 
 class MessagesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @message = messages(:one)
+    @message = messages(:alice_to_bob)
   end
 
   test "should get index" do
