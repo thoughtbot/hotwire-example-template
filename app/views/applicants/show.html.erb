@@ -1,0 +1,10 @@
+<section>
+  <h1><%= @applicant.name %></h1>
+
+  <dl>
+    <% @applicant.references.each do |reference| %>
+      <dt><%= reference.name %></dt>
+      <dd><%= reference.email_address %></dd>
+    <% end %>
+  </dl>
+</section>

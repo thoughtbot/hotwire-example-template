@@ -1,0 +1,4 @@
+friend:
+  name: Friend
+  email_address: friend@example.com
+  applicant: alice

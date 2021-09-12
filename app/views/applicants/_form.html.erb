@@ -1,0 +1,31 @@
+<fieldset>
+  <legend>Applicant</legend>
+
+  <%= form.label :name %>
+  <%= form.text_field :name %>
+</fieldset>
+
+<fieldset>
+  <legend>Personal references</legend>
+
+  <ol>
+    <% form.object.references.each_with_index do |reference, index| %>
+      <%= form.fields :references_attributes, model: reference, index: index do |reference_form| %>
+        <li <%= "hidden" if reference_form.object.marked_for_destruction? %> class="mt-2">
+          <div class="grid gap-2">
+            <%= reference_form.hidden_field :id %>
+            <%= reference_form.hidden_field :_destroy %>
+
+            <%= reference_form.label :name %>
+            <%= reference_form.text_field :name %>
+
+            <%= reference_form.label :email_address %>
+            <%= reference_form.email_field :email_address %>
+          </div>
+        </li>
+      <% end %>
+    <% end %>
+  </ol>
+</fieldset>
+
+<%= form.button %>
