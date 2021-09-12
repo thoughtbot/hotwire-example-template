@@ -1,0 +1,25 @@
+<fieldset>
+  <legend>Applicant</legend>
+
+  <%= form.label :name %>
+  <%= form.text_field :name %>
+</fieldset>
+
+<fieldset>
+  <legend>Personal references</legend>
+
+  <ol>
+    <% form.object.references.each_with_index do |reference, index| %>
+      <%= form.fields :references_attributes, model: reference,
+                                              index: index do |reference_form| %>
+        <%= render partial: "references/form", object: reference_form %>
+      <% end %>
+    <% end %>
+  </ol>
+
+  <button type="button">
+    Add personal reference
+  </button>
+</fieldset>
+
+<%= form.button %>

@@ -6,4 +6,5 @@ end
 
 Capybara.configure do |config|
   config.default_normalize_ws = true
+  config.enable_aria_role = true
 end
