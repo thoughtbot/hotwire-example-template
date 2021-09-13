@@ -23,6 +23,14 @@
 
             <%= reference_form.label :email_address %>
             <%= reference_form.email_field :email_address %>
+
+            <%= reference_form.button :_destroy, value: true,
+                                                 formaction: reference_form.object.applicant.persisted? ?
+                                                   edit_applicant_path(reference_form.object.applicant) :
+                                                   new_applicant_path,
+                                                 formmethod: "get" do %>
+              Destroy
+            <% end %>
           </div>
         </li>
       <% end %>

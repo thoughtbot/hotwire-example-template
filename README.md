@@ -247,3 +247,24 @@ technology, and won't be able to receive focus:
 [tree order]: https://dev.w3.org/html5/spec-LC/infrastructure.html#tree-order
 
 https://user-images.githubusercontent.com/2575027/152659647-b2e021f2-5f6f-4384-924c-2660a5d00e37.mov
+
+## Removing nested fields
+
+```diff
+--- a/app/views/applicants/_form.html.erb
++++ b/app/views/applicants/_form.html.erb
+             <%= reference_form.label :email_address %>
+             <%= reference_form.email_field :email_address %>
++
++            <%= reference_form.button :_destroy, value: true,
++                                                 formaction: reference_form.object.applicant.persisted? ?
++                                                   edit_applicant_path(reference_form.object.applicant) :
++                                                   new_applicant_path,
++                                                 formmethod: "get" do %>
++              Destroy
++            <% end %>
+           </div>
+         </li>
+```
+
+https://user-images.githubusercontent.com/2575027/152659594-e3c00c6a-d9d6-46d3-a460-fba1b9777d06.mov
