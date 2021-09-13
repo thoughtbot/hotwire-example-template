@@ -7,6 +7,7 @@ class ApplicantsTest < ApplicationSystemTestCase
       fill_in "Name", with: "Bob"
     end
     within :fieldset, "Personal references" do
+      click_on "Add personal reference"
       within "li:nth-of-type(1)" do
         fill_in "Name", with: "Friend"
         fill_in "Email address", with: "friend@example.com"
@@ -28,7 +29,8 @@ class ApplicantsTest < ApplicationSystemTestCase
       fill_in "Name", with: "Alicia"
     end
     within :fieldset, "Personal references" do
-      within "li:nth-of-type(1)" do
+      click_on "Add personal reference"
+      within "li:nth-of-type(2)" do
         fill_in "Name", with: "Enemy"
         fill_in "Email address", with: "enemy@example.com"
       end
@@ -36,6 +38,8 @@ class ApplicantsTest < ApplicationSystemTestCase
     click_on "Update Applicant"
 
     within :section, "Alicia" do
+      assert_text "Friend", count: 1
+      assert_text "friend@example.com", count: 1
       assert_text "Enemy", count: 1
       assert_text "enemy@example.com", count: 1
     end

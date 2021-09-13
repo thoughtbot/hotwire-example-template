@@ -148,3 +148,59 @@ The `app/views/applicants/_form.html.erb` view partial:
 
 <img  src="https://images.thoughtbot.com/blog-vellum-image-uploads/YL51hm7cRtm1Y5kGqJOR_nested-attributes-edit.png"
       alt="A form to edit an Applicant and their personal references">
+
+## Adding nested fields
+
+```diff
+--- a/app/controllers/applicants_controller.rb
++++ b/app/controllers/applicants_controller.rb
+ class ApplicantsController < ApplicationController
+   def new
+-    @applicant = Applicant.new
+-    @applicant.references.new
++    @applicant = Applicant.new applicant_params
+   end
+```
+
+```diff
+--- a/app/controllers/applicants_controller.rb
++++ b/app/controllers/applicants_controller.rb
+   def edit
+     @applicant = Applicant.find params[:id]
++    @applicant.assign_attributes applicant_params
+   end
+```
+
+```diff
+--- a/app/controllers/applicants_controller.rb
++++ b/app/controllers/applicants_controller.rb
+   private
+
+   def applicant_params
+-    params.require(:applicant).permit(
++    params.fetch(:applicant, {}).permit(
+       :name,
+       references_attributes: [ :name, :email_address, :id, :_destroy ],
+     )
+```
+
+```diff
+--- a/app/views/applicants/_form.html.erb
++++ b/app/views/applicants/_form.html.erb
+   </ol>
++
++  <%= form.fields :references_attributes, index: form.object.references.size do |reference_form| %>
++    <%= reference_form.button :_destroy, value: false,
++                                         formaction: form.object.persisted? ?
++                                           edit_applicant_path(form.object) :
++                                           new_applicant_path,
++                                         formmethod: "get" do %>
++      Add personal reference
++    <% end %>
++  <% end %>
+ </fieldset>
+
+ <%= form.button %>
+```
+
+https://user-images.githubusercontent.com/2575027/152659554-c69dd665-f96c-4a91-a7f2-e39e7d9a7e07.mov
