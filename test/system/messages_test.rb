@@ -81,4 +81,25 @@ class MessagesTest < ApplicationSystemTestCase
 
     within_section("Results") { assert_no_link }
   end
+
+  test "navigates the results as a combobox" do
+    monday, last_monday, two_mondays_ago = messages(:from_0_days_ago, :from_7_days_ago, :from_14_days_ago)
+
+    visit messages_path
+    fill_in("Query", with: "Monday").then { send_keys :enter }
+    within_section "Results" do
+      send_keys(:arrow_down).then { assert_list_box_option monday.body, selected: true }
+      send_keys(:arrow_down).then { assert_list_box_option last_monday.body, selected: true }
+      send_keys(:arrow_down).then { assert_list_box_option two_mondays_ago.body, selected: true }
+    end
+    send_keys :enter
+
+    assert_link "Edit this message", href: edit_message_path(two_mondays_ago)
+  end
+
+  def assert_list_box_option(locator, selected: nil, **options)
+    assert_selector :list_box_option, locator, **options do |listbox|
+      selected.nil? || listbox["aria-selected"] == selected.to_s
+    end
+  end
 end

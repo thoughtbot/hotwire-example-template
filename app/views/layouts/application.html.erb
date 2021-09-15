@@ -12,11 +12,12 @@
   </head>
 
   <body>
-    <header>
+    <header data-controller="combobox">
       <form action="<%= searches_path(turbo_frame: "search_results") %>" data-turbo-frame="search_results" class="peer"
         data-controller="form" data-action="invalid->form#hideValidationMessage:capture">
         <label for="search_query">Query</label>
-        <input id="search_query" name="query" type="search" pattern=".*\w+.*" required>
+        <input id="search_query" name="query" type="search" pattern=".*\w+.*" required autocomplete="off"
+          data-combobox-target="input" data-action="focus->combobox#start focusout->combobox#stop">
 
         <button>
           Search

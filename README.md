@@ -445,3 +445,304 @@ element's style, and hide it.
 [Tailwind CSS]: https://tailwindcss.com/
 [variant]: https://tailwindcss.com/docs/hover-focus-and-other-states
 [direct sibling]: https://developer.mozilla.org/en-US/docs/Web/CSS/General_sibling_combinator
+
+## Navigating the results
+
+Now that our search results are rendered onto the page, we'll want to
+navigate through them with our keyboard's direction keys. The Web
+Accessibility Initiative - Accessible Rich Internet Applications (<abbr
+title="Web Accessibility Initiative - Accessible Rich Internet
+Applications">[WAI-ARIA][]</abbr>) Authoring Practices outline a pattern
+for this type of behavior: [role="combobox"][].
+
+We'll depend on the [@github/combobox-nav][] package to progressively
+enhance our search results by outsourcing keyboard navigation and
+selection management.
+
+Wiring-up the controller
+---
+
+Since we're overriding the way that browsers prompt users with a list of
+choices when filling out a text box, we'll start by signalling to
+browsers that our `<input type="search">` can skip autocompletion by
+declaring [autocomplete="off"][]:
+
+[@github/combobox-nav]: https://github.com/github/combobox-nav
+[WAI-ARIA]: https://www.w3.org/TR/wai-aria-practices/
+[role="combobox"]: https://www.w3.org/TR/wai-aria-1.2/#combobox
+[autocomplete="off"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete#values
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+   <body>
+     <header>
+       <form action="<%= searches_path(turbo_frame: "search_results") %>" data-turbo-frame="search_results" class="peer"
+         data-controller="form" data-action="invalid->form#hideValidationMessage:capture">
+         <label for="search_query">Query</label>
+-        <input id="search_query" name="query" type="search" pattern=".*\w+.*" required>
++        <input id="search_query" name="query" type="search" pattern=".*\w+.*" required autocomplete="off">
+```
+
+Next, we'll create a `combobox` [Stimulus Controller][] and import the
+`@github/combobox-nav` package through [Skypack][]:
+
+[Stimulus Controller]: https://stimulus.hotwired.dev/handbook/hello-stimulus#controllers-bring-html-to-life
+[Skypack]: https://www.skypack.dev
+
+```javascript
+import { Controller } from "@hotwired/stimulus"
+import Combobox from "https://cdn.skypack.dev/@github/combobox-nav"
+
+export default class extends Controller {
+}
+```
+
+Our controller needs an element within the browser's document to attach
+its behavior to, so we'll declare `[data-controller="combobox"]` on an
+element. In this case, it's crucial that the element is an ancestor of
+_both_ our `<input type="search">` and our `<turbo-frame
+id="search_results">` elements. Since the `<input type="search">`
+element's ancestor `<form>` is the `<turbo-frame id="search_results">`
+element's sibling, their `<header>` ancestor will do the trick:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+   <body>
+-    <header>
++    <header data-controller="combobox">
+       <form action="<%= searches_path(turbo_frame: "search_results") %>" data-turbo-frame="search_results" class="peer"
+         data-controller="form" data-action="invalid->form#hideValidationMessage:capture">
+         <label for="search_query">Query</label>
+```
+
+In order to construct and attach a `Combobox` instance, we'll need two
+elements: a `[role="combobox"]` element and a `[role="listbox"]` element
+with. [Stimulus Targets][] afford controllers with direct references to
+elements with the matching attributes. We'll create targets to access
+the input and the list:
+
+[Stimulus Targets]: https://stimulus.hotwired.dev/reference/targets
+
+```diff
+--- a/app/javascript/controllers/combobox_controller.js
++++ b/app/javascript/controllers/combobox_controller.js
+ import { Controller } from "@hotwired/stimulus"
+ import Combobox from "https://cdn.skypack.dev/@github/combobox-nav"
+
+ export default class extends Controller {
++  static get targets() { return [ "input", "list" ] }
+ }
+```
+
+We'll annotate elements in our templates to coincide with each target
+declaration. First, we'll declare `[data-combobox-target="input"]` on
+our `<input type="search">`:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+   <body>
+     <header data-controller="combobox">
+       <form action="<%= searches_path(turbo_frame: "search_results") %>" data-turbo-frame="search_results" class="peer"
+         data-controller="form" data-action="invalid->form#hideValidationMessage:capture">
+         <label for="search_query">Query</label>
+-        <input id="search_query" name="query" type="search" pattern=".*\w+.*" required autocomplete="off">
++        <input id="search_query" name="query" type="search" pattern=".*\w+.*" required autocomplete="off"
++          data-combobox-target="input">
+```
+
+According to the `@github/combobox-nav` [documentation][], there are two
+requirements for the list:
+
+> * Each option needs to have `role="option"` and a unique `id`
+> * The list should have `role="listbox"`
+
+To meet those requirements, we'll declare `[role="listbox"]` and
+`[data-combobox-target="list"]` on the `searches/index` template's
+`<ul>` element. For each of the `<ul>` element's descendant `<a>`
+elements will declare the `[role="option"]` attribute, and make sure
+each has a unique `[id]` attribute:
+
+[documentation]: https://github.com/github/combobox-nav/tree/main#usage
+
+```diff
+--- a/app/views/searches/index.html.erb
++++ b/app/views/searches/index.html.erb
+ <turbo-frame id="<%= params.fetch(:turbo_frame, "search_results") %>">
+   <h1>Results</h1>
+
+-  <ul>
++  <ul role="listbox" data-combobox-target="list">
+     <% @messages.each do |message| %>
+       <li>
+-        <%= link_to highlight(message.body, params[:query]), message_path(message) %>
++        <%= link_to highlight(message.body, params[:query]), message_path(message),
++              id: dom_id(message, :search_result), role: "option" %>
+       </li>
+     <% end %>
+   </ul>
+```
+
+Now that our controller has direct access to the necessary element, and
+those elements meet the markup requirements for `@github/combobox-nav`,
+we can wire-up our [Stimulus Actions][] to start and stop keyboard event
+interception.
+
+[Stimulus Actions]: https://stimulus.hotwired.dev/reference/actions
+
+We'll want our controller to start intercepting keyboard events
+whenever:
+
+1. The `<input type="search">` element gains focus
+2. The `[role="listbox"]` element is present and contains search results
+   to navigate
+
+To cover the first case, we'll declare a `start()` action:
+
+```diff
+--- a/app/javascript/controllers/combobox_controller.js
++++ b/app/javascript/controllers/combobox_controller.js
+ export default class extends Controller {
+   static get targets() { return [ "input", "list" ] }
++
++  start() {
++    this.combobox?.destroy()
++
++    this.combobox = new Combobox(this.inputTarget, this.listTarget)
++    this.combobox.start()
++  }
+ }
+```
+
+The action makes use of the [optional chaining operator][] to safely
+destroy any previously instantiated `Combobox` instances so that each
+`start()` action operates without stale references.
+
+In order to route [focus][] events to our controller's `start()` action,
+we'll need to declare a `focus->combobox#start` descriptor on the
+`<input type="search">` element:
+
+[optional chaining operator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining
+[focus]: https://developer.mozilla.org/en-US/docs/Web/API/Element/focus_event
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+@@ -10,11 +10,12 @@
+   </head>
+
+   <body>
+     <header data-controller="combobox">
+       <form action="<%= searches_path(turbo_frame: "search_results") %>" data-turbo-frame="search_results" class="peer"
+         data-controller="form" data-action="invalid->form#hideValidationMessage:capture">
+         <label for="search_query">Query</label>
+         <input id="search_query" name="query" type="search" pattern=".*\w+.*" required autocomplete="off"
+-          data-combobox-target="input">
++          data-combobox-target="input" data-action="focus->combobox#start">
+```
+
+To cover the second case, we'll implement a `listTargetConnected()`
+callback to fire whenever our `[data-combobox-target="list"]` element is
+connected to the document:
+
+```diff
+--- a/app/javascript/controllers/combobox_controller.js
++++ b/app/javascript/controllers/combobox_controller.js
+ export default class extends Controller {
+   static get targets() { return [ "input", "list" ] }
++
++  listTargetConnected() {
++    this.start()
++  }
++
+   start() {
+```
+
+We'll stop intercepting keyboard events whenever the `<input
+type="search">` element loses focus. To do so, we'll add a `stop()`
+action to our controller:
+
+```diff
+--- a/app/javascript/controllers/combobox_controller.js
++++ b/app/javascript/controllers/combobox_controller.js
+
+     this.combobox = new Combobox(this.inputTarget, this.listTarget)
+     this.combobox.start()
+   }
++
++  stop() {
++    this.combobox?.stop()
++  }
+ }
+```
+
+Next, we'll declare a `focusout->combobox#stop` descriptor on our
+`<input type="search">` element so that our controller's `stop()` is
+invoked whenever a [focusout][] event fires:
+
+[focusout]: https://developer.mozilla.org/en-US/docs/Web/API/Element/focusout_event
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+         <label for="search_query">Query</label>
+         <input id="search_query" name="query" type="search" pattern=".*\w+.*" required autocomplete="off"
+-          data-combobox-target="input" data-action="focus->combobox#start">
++          data-combobox-target="input" data-action="focus->combobox#start focusout->combobox#stop">
+```
+
+Finally, whenever the controlled element is [disconnected][] from the
+document, we'll destroy the `Combobox` instance:
+
+[disconnected]: https://stimulus.hotwired.dev/reference/lifecycle-callbacks#disconnection
+
+```diff
+--- a/app/javascript/controllers/combobox_controller.js
++++ b/app/javascript/controllers/combobox_controller.js
+   static get targets() { return [ "input", "list" ] }
+
++  disconnect() {
++    this.combobox?.destroy()
++  }
++
+   listTargetConnected() {
+     this.start()
+   }
+```
+
+Visually indicating selection
+---
+
+Navigating a `[role="combobox"]` element moves a _selection_ cursor,
+instead of the document's focus. Whenever <kbd>↑</kbd> or <kbd>↓</kbd>
+keys are pressed, the `Combobox` instance will set
+`[aria-selected="true"]` on the current `[role="option"]` element and
+`[aria-selected="false"]` on all other `[role="option"]` elements.
+
+To add a visual cue that the selection has changed, we'll declare an
+`aria-selected:outline-black` class inspired by Tailwind CSS:
+
+```diff
+--- a/app/assets/stylesheets/application.css
++++ b/app/assets/stylesheets/application.css
+ .empty\:hidden:empty                                { display: none; }
+ .peer:invalid ~ .peer-invalid\:hidden               { display: none; }
++.aria-selected\:outline-black[aria-selected="true"] { outline: 2px dotted black; }
+```
+
+Next, we'll add that class to our `<a>` search result elements:
+
+```diff
+--- a/app/views/searches/index.html.erb
++++ b/app/views/searches/index.html.erb
+@@ -1,10 +1,11 @@
+     <% @messages.each do |message| %>
+       <li>
+         <%= link_to highlight(message.body, params[:query]), message_path(message),
+-              id: dom_id(message, :search_result), role: "option" %>
++              id: dom_id(message, :search_result), role: "option", class: "aria-selected:outline-black" %>
+       </li>
+     <% end %>
+```

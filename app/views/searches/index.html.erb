@@ -1,10 +1,11 @@
 <turbo-frame id="<%= params.fetch(:turbo_frame, "search_results") %>">
   <h1>Results</h1>
 
-  <ul>
+  <ul role="listbox" data-combobox-target="list">
     <% @messages.each do |message| %>
       <li>
-        <%= link_to highlight(message.body, params[:query]), message_path(message) %>
+        <%= link_to highlight(message.body, params[:query]), message_path(message),
+              id: dom_id(message, :search_result), role: "option", class: "aria-selected:outline-black" %>
       </li>
     <% end %>
   </ul>
