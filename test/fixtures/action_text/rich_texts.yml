@@ -2,3 +2,31 @@
 #   record: name_of_fixture (ClassOfFixture)
 #   name: content
 #   body: <p>In a <i>million</i> stars!</p>
+
+DEFAULTS: &DEFAULTS
+  record: $LABEL (Card)
+  name: content
+
+setup:
+  <<: *DEFAULTS
+  body: <div>Setup the database schema.</div>
+
+decide:
+  <<: *DEFAULTS
+  body: <div>Decide on the example's domain.</div>
+
+write:
+  <<: *DEFAULTS
+  body: <div>Write the article.</div>
+
+edit:
+  <<: *DEFAULTS
+  body: <div>Edit the contents of the article.</div>
+
+pull_request:
+  <<: *DEFAULTS
+  body: <div>Open a pull request.</div>
+
+publish:
+  <<: *DEFAULTS
+  body: <div>Publish the article!</div>
