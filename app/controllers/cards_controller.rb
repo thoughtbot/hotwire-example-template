@@ -11,6 +11,6 @@ class CardsController < ApplicationController
   private
 
   def card_params
-    params.require(:card).permit(:row_order_position)
+    params.require(:card).permit(:row_order_position, :stage_id)
   end
 end

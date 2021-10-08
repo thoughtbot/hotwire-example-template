@@ -21,6 +21,18 @@
             Move <%= card.name %> down
           </button>
         <% end %>
+
+        <%= form_with model: [ stage.board, card ] do |form| %>
+          <%= form.hidden_field :row_order_position, value: 0 %>
+
+          <%= form.label :stage_id do %>
+            Stages
+          <% end %>
+          <%= form.select :stage_id, stage.other_stages.pluck(:name, :id) %>
+          <button>
+            Move to Stage
+          </button>
+        <% end %>
       </li>
     <% end %>
   </ol>
