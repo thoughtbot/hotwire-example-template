@@ -5,6 +5,14 @@
     <% stage.cards.rank(:row_order).each do |card| %>
       <li>
         <%= card.content %>
+
+        <%= form_with model: [ stage.board, card ] do |form| %>
+          <%= form.hidden_field :row_order_position, value: "down" %>
+
+          <button>
+            Move <%= card.name %> down
+          </button>
+        <% end %>
       </li>
     <% end %>
   </ol>
