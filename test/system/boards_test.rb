@@ -40,4 +40,18 @@ class BoardsTest < ApplicationSystemTestCase
       assert_css "li:nth-of-type(3)", text: last.name
     end
   end
+
+  test "omits redundant buttons for the first and last Cards in a Stage" do
+    todo = stages :todo
+    first, middle, last = cards :edit, :pull_request, :publish
+
+    visit board_path(todo.board)
+
+    within_section todo.name do
+      assert_no_button "Move #{first.name} up"
+      assert_button "Move #{middle.name} up"
+      assert_button "Move #{middle.name} down"
+      assert_no_button "Move #{last.name} down"
+    end
+  end
 end

@@ -3,13 +3,13 @@
 
   <ol>
     <% stage.cards.rank(:row_order).each do |card| %>
-      <li>
+      <li class="group">
         <%= card.content %>
 
         <%= form_with model: [ stage.board, card ] do |form| %>
           <%= form.hidden_field :row_order_position, value: "up" %>
 
-          <button>
+          <button class="group-first-of-type:hidden">
             Move <%= card.name %> up
           </button>
         <% end %>
@@ -17,7 +17,7 @@
         <%= form_with model: [ stage.board, card ] do |form| %>
           <%= form.hidden_field :row_order_position, value: "down" %>
 
-          <button>
+          <button class="group-last-of-type:hidden">
             Move <%= card.name %> down
           </button>
         <% end %>
