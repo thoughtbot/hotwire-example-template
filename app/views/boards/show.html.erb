@@ -1,0 +1,5 @@
+<main class="grid grid-cols-3 gap-1">
+  <h1 class="col-span-3 h-12">Board</h1>
+
+  <%= render partial: "stages/stage", collection: @board.stages.rank(:column_order) %>
+</main>

@@ -1,0 +1,11 @@
+<section class="row-end-auto">
+  <h2><%= stage.name %></h2>
+
+  <ol>
+    <% stage.cards.rank(:row_order).each do |card| %>
+      <li>
+        <%= card.content %>
+      </li>
+    <% end %>
+  </ol>
+</section>
