@@ -54,4 +54,23 @@ class BoardsTest < ApplicationSystemTestCase
       assert_no_button "Move #{last.name} down"
     end
   end
+
+  test "move a Card to another Stage" do
+    todo, doing = stages :todo, :doing
+    edit, top_of_doing = cards :edit, :write
+
+    visit board_path(todo.board)
+    within_section todo.name do
+      within "li", text: edit.name do
+        select doing.name, from: "Stages"
+        click_on "Move to Stage"
+      end
+
+      assert_no_text edit.name
+    end
+    within_section doing.name do
+      assert_css "li:nth-of-type(1)", text: edit.name
+      assert_css "li:nth-of-type(2)", text: top_of_doing.name
+    end
+  end
 end

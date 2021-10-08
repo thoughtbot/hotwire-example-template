@@ -7,6 +7,8 @@ class Card < ApplicationRecord
 
   ranks :row_order, with_same: :stage_id
 
+  delegate :other_stages, to: :stage
+
   def name
     content.to_plain_text
   end
