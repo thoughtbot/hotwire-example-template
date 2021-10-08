@@ -5,7 +5,7 @@ wire](https://hotwired.dev).
 
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.png)][heroku-deploy-app]
 
-[heroku-deploy-app]: https://heroku.com/deploy?template=https://github.com/thoughtbot/hotwire-example-template/tree/main
+[heroku-deploy-app]: https://heroku.com/deploy?template=https://github.com/thoughtbot/hotwire-example-template/tree/hotwire-example-kanban
 
 ## How to read this repository
 
