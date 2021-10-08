@@ -1,9 +1,25 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
+setup:
   row_order: 1
-  stage: one
+  stage: done
 
-two:
+decide:
+  row_order: 2
+  stage: done
+
+write:
   row_order: 1
-  stage: two
+  stage: doing
+
+edit:
+  row_order: 1
+  stage: todo
+
+pull_request:
+  row_order: 2
+  stage: todo
+
+publish:
+  row_order: 3
+  stage: todo
