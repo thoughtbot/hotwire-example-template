@@ -7,6 +7,14 @@
         <%= card.content %>
 
         <%= form_with model: [ stage.board, card ] do |form| %>
+          <%= form.hidden_field :row_order_position, value: "up" %>
+
+          <button>
+            Move <%= card.name %> up
+          </button>
+        <% end %>
+
+        <%= form_with model: [ stage.board, card ] do |form| %>
           <%= form.hidden_field :row_order_position, value: "down" %>
 
           <button>

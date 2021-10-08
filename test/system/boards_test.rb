@@ -26,4 +26,18 @@ class BoardsTest < ApplicationSystemTestCase
       assert_css "li:nth-of-type(3)", text: middle.name
     end
   end
+
+  test "move a Card up a Stage" do
+    todo = stages :todo
+    first, middle, last = cards :edit, :pull_request, :publish
+
+    visit board_path(todo.board)
+    within_section todo.name do
+      click_on "Move #{middle.name} up"
+
+      assert_css "li:nth-of-type(1)", text: middle.name
+      assert_css "li:nth-of-type(2)", text: first.name
+      assert_css "li:nth-of-type(3)", text: last.name
+    end
+  end
 end
