@@ -1,9 +1,10 @@
-<section class="row-end-auto">
+<section class="row-end-auto"
+    data-controller="drag"
+    data-drag-accepting-class="opacity-25"
+    data-action="dragstart->drag#start">
   <h2><%= stage.name %></h2>
 
-  <ol data-controller="drag"
-      data-drag-accepting-class="opacity-25"
-      data-action="dragstart->drag#start">
+  <ol>
     <% stage.cards.rank(:row_order).each do |card| %>
       <li class="group" draggable="true" aria-dropeffect="move" data-action="dragover->drag#accept dragleave->drag#reject drop->drag#insert">
         <template data-drag-target="template">
@@ -42,6 +43,7 @@
 
         <%= form_with model: [ stage.board, card ], data: { drag_target: "drop" } do |form| %>
           <%= form.hidden_field :row_order_position, value: card.row_order_rank %>
+          <%= form.hidden_field :stage_id %>
         <% end %>
       </li>
     <% end %>

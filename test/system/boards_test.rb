@@ -88,6 +88,20 @@ class BoardsTest < ApplicationSystemTestCase
     end
   end
 
+  test "drag a Card to another Stage" do
+    todo, doing = stages :todo, :doing
+    edit, top_of_doing = cards :edit, :write
+
+    visit board_path(todo.board)
+    drag_card edit.name, onto: top_of_doing.name
+
+    within_section(todo.name) { assert_no_text edit.name }
+    within_section doing.name do
+      assert_css "li:nth-of-type(1)", text: top_of_doing.name
+      assert_css "li:nth-of-type(2)", text: edit.name
+    end
+  end
+
   def drag_card(name, onto:)
     drag_target = find %([draggable="true"]), text: name
     drop_target = find %([aria-dropeffect="move"]), text: onto
