@@ -73,4 +73,25 @@ class BoardsTest < ApplicationSystemTestCase
       assert_css "li:nth-of-type(2)", text: top_of_doing.name
     end
   end
+
+  test "drag a Card to sort within a Stage" do
+    todo = stages :todo
+    first, middle, last = cards :edit, :pull_request, :publish
+
+    visit board_path(todo.board)
+    within_section todo.name do
+      drag_card last.name, onto: first.name
+
+      assert_css "li:nth-of-type(1)", text: last.name
+      assert_css "li:nth-of-type(2)", text: first.name
+      assert_css "li:nth-of-type(3)", text: middle.name
+    end
+  end
+
+  def drag_card(name, onto:)
+    drag_target = find %([draggable="true"]), text: name
+    drop_target = find %([aria-dropeffect="move"]), text: onto
+
+    drag_target.drag_to drop_target
+  end
 end
