@@ -4,6 +4,7 @@ class CardsController < ApplicationController
     @card = @board.cards.find params[:id]
 
     @card.update! card_params
+    @card.broadcast_changes_to_stages
 
     redirect_to board_url(@board)
   end
