@@ -115,6 +115,40 @@ class BoardsTest < ApplicationSystemTestCase
     within_section(doing.name) { assert_css "li:only-of-type", text: write.name }
   end
 
+  test "receives changes within a Stage broadcast from other sessions" do
+    todo = stages :todo
+    first, middle, last = cards :edit, :pull_request, :publish
+
+    visit board_path(todo.board)
+    within_window open_new_window do
+      visit board_path(todo.board)
+      within_section(todo.name) { click_on "Move #{middle.name} up" }
+    end
+
+    within_section todo.name do
+      assert_css "li:nth-of-type(1)", text: middle.name
+      assert_css "li:nth-of-type(2)", text: first.name
+      assert_css "li:nth-of-type(3)", text: last.name
+    end
+  end
+
+  test "receives changes across a Stage broadcast from other sessions" do
+    todo, doing = stages :todo, :doing
+    edit, top_of_doing = cards :edit, :write
+
+    visit board_path(todo.board)
+    within_window open_new_window do
+      visit board_path(todo.board)
+      drag_card edit.name, onto: top_of_doing.name
+    end
+
+    within_section(todo.name) { assert_no_text edit.name }
+    within_section doing.name do
+      assert_css "li:nth-of-type(1)", text: top_of_doing.name
+      assert_css "li:nth-of-type(2)", text: edit.name
+    end
+  end
+
   def drag_card(name, onto:)
     drag_target = find %([draggable="true"]), text: name
     drop_target = find %([aria-dropeffect="move"]), text: onto
