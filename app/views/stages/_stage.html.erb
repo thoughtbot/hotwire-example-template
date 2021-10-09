@@ -4,7 +4,7 @@
     data-action="dragstart->drag#start">
   <h2><%= stage.name %></h2>
 
-  <ol>
+  <%= tag.ol class: "peer" do -%>
     <% stage.cards.rank(:row_order).each do |card| %>
       <li class="group" draggable="true" aria-dropeffect="move" data-action="dragover->drag#accept dragleave->drag#reject drop->drag#insert">
         <template data-drag-target="template">
@@ -47,5 +47,17 @@
         <% end %>
       </li>
     <% end %>
-  </ol>
+  <% end %>
+
+  <form method="post" class="hidden h-12 peer-empty:block" aria-dropeffect="move" data-drag-target="drop"
+      data-action="dragover->drag#accept dragleave->drag#reject drop->drag#insert">
+    <input type="hidden" name="_method" value="patch">
+
+    Move to <%= stage.name %>
+
+    <%= fields :card do |form| %>
+      <%= form.hidden_field :row_order_position, value: 0 %>
+      <%= form.hidden_field :stage_id, value: stage.id %>
+    <% end %>
+  </form>
 </section>

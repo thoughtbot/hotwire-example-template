@@ -102,6 +102,19 @@ class BoardsTest < ApplicationSystemTestCase
     end
   end
 
+  test "drag a Card to an empty Stage" do
+    todo, doing = stages :todo, :doing
+    edit, write = cards :edit, :write
+    doing.cards.without(write).destroy_all
+
+    visit board_path(todo.board)
+    drag_card write.name, onto: edit.name
+    drag_card write.name, onto: "Move to #{doing.name}"
+
+    within_section(todo.name) { assert_no_text write.name }
+    within_section(doing.name) { assert_css "li:only-of-type", text: write.name }
+  end
+
   def drag_card(name, onto:)
     drag_target = find %([draggable="true"]), text: name
     drop_target = find %([aria-dropeffect="move"]), text: onto
