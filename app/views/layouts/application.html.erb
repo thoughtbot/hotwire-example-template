@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-controller="scroll">
+<html data-controller="scroll focus">
   <head>
     <title>HotwireExampleTemplate</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,7 +11,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
+  <body data-action="click->focus#push">
     <%= yield %>
   </body>
 </html>

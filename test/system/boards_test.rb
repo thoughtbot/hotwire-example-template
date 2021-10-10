@@ -149,6 +149,60 @@ class BoardsTest < ApplicationSystemTestCase
     end
   end
 
+  test "preserves button focus when moving a Card down within a Stage" do
+    todo = stages :todo
+    first, middle, last = cards :edit, :pull_request, :publish
+
+    visit board_path(todo.board)
+    within_section todo.name do
+      move_focus_to "Move #{first.name} down"
+      send_keys :enter
+
+      assert_button "Move #{first.name} down", focused: true
+      send_keys :enter
+
+      assert_css "li:nth-of-type(1)", text: middle.name
+      assert_css "li:nth-of-type(2)", text: last.name
+      assert_css "li:nth-of-type(3)", text: first.name
+    end
+  end
+
+  test "releases button focus when the button is hidden" do
+    todo = stages :todo
+    middle = cards :pull_request
+
+    visit board_path(todo.board)
+    within_section todo.name do
+      move_focus_to "Move #{middle.name} down"
+      send_keys :enter
+
+      assert_css "li:nth-of-type(3)", text: middle.name
+      assert_no_button focused: true, visible: :all
+    end
+  end
+
+  test "preserves focus when receiving changes from another session" do
+    todo = stages :todo
+    first, middle = cards :edit, :pull_request
+
+    visit board_path(todo.board)
+    move_focus_to "Move #{first.name} down"
+    within_window open_new_window do
+      visit board_path(todo.board)
+      within_section(todo.name) { click_on "Move #{middle.name} up" }
+    end
+
+    within_section todo.name do
+      assert_button "Move #{first.name} down", focused: true
+      assert_css "li:nth-of-type(1)", text: middle.name
+      assert_css "li:nth-of-type(2)", text: first.name
+    end
+  end
+
+  def move_focus_to(selector = :link_or_button, locator, **options)
+    send_keys :tab until page.has_selector?(selector, locator, focused: true, **options)
+  end
+
   def drag_card(name, onto:)
     drag_target = find %([draggable="true"]), text: name
     drop_target = find %([aria-dropeffect="move"]), text: onto

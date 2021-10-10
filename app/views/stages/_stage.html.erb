@@ -17,7 +17,7 @@
         <%= form_with model: [ stage.board, card ] do |form| %>
           <%= form.hidden_field :row_order_position, value: "up" %>
 
-          <button class="group-first-of-type:hidden">
+          <button id="<%= dom_id card, :up %>" class="group-first-of-type:hidden" data-focus-target="item">
             Move <%= card.name %> up
           </button>
         <% end %>
@@ -25,7 +25,7 @@
         <%= form_with model: [ stage.board, card ] do |form| %>
           <%= form.hidden_field :row_order_position, value: "down" %>
 
-          <button class="group-last-of-type:hidden">
+          <button id="<%= dom_id card, :down %>" class="group-last-of-type:hidden" data-focus-target="item">
             Move <%= card.name %> down
           </button>
         <% end %>
@@ -36,8 +36,8 @@
           <%= form.label :stage_id do %>
             Stages
           <% end %>
-          <%= form.select :stage_id, stage.other_stages.pluck(:name, :id) %>
-          <button>
+          <%= form.select :stage_id, stage.other_stages.pluck(:name, :id), data: { focus_target: "item" } %>
+          <button id="<%= dom_id card, :move %>" data-focus-target="item">
             Move to Stage
           </button>
         <% end %>
