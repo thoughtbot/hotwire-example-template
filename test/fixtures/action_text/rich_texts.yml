@@ -30,3 +30,9 @@ pull_request:
 publish:
   <<: *DEFAULTS
   body: <div>Publish the article!</div>
+
+<% (1..10).each do |row_order| %>
+todo_<%= row_order %>:
+  <<: *DEFAULTS
+  body: "<div>Todo #<%= row_order %></div>"
+<% end %>

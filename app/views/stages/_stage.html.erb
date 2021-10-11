@@ -1,7 +1,8 @@
-<section id="<%= dom_id stage %>" class="row-end-auto"
+<section id="<%= dom_id stage %>" class="row-end-auto flex flex-col overflow-y-scroll"
     data-controller="drag"
+    data-scroll-target="container"
     data-drag-accepting-class="opacity-25"
-    data-action="dragstart->drag#start">
+    data-action="dragstart->drag#start scroll->scroll#track:passive">
   <h2><%= stage.name %></h2>
 
   <%= tag.ol class: "peer" do -%>

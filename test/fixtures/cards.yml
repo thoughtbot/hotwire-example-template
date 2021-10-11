@@ -23,3 +23,9 @@ pull_request:
 publish:
   row_order: 3
   stage: todo
+
+<% (1..10).each do |row_order| %>
+todo_<%= row_order %>:
+  row_order: <%= row_order %>
+  stage: todo
+<% end %>
