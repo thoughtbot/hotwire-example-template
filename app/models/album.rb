@@ -1,0 +1,2 @@
+class Album < ApplicationRecord
+end

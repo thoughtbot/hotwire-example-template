@@ -1,0 +1,10 @@
+<p id="notice"><%= notice %></p>
+
+<%= render @album %>
+
+<div>
+  <%= link_to "Edit this album", edit_album_path(@album) %> |
+  <%= link_to "Back to albums", albums_path %>
+
+  <%= button_to "Destroy this album", album_path(@album), method: :delete %>
+</div>
