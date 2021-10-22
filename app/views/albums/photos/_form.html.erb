@@ -1,9 +1,18 @@
-<li>
-  <%= form.check_box :photos,
-    { id: id, checked: true, multiple: true },
-    photo.signed_id, [] %>
+<li data-controller="file-reader disabled">
+  <% if photo.persisted? %>
+    <%= form.check_box :photos,
+      { id: id, checked: true, multiple: true },
+      photo.signed_id, [] %>
+  <% else %>
+    <%= form.check_box :photos,
+          id: id, checked: true, name: nil,
+          data: { action: "input->disabled#toggle" } %>
+    <%= form.file_field :photos,
+          id: nil, multiple: true, direct_upload: true, hidden: true,
+          data: { disabled_target: "input", file_reader_target: "input" } %>
+  <% end %>
 
-  <%= form.label :photos, photo.filename, for: id %>
+  <%= form.label :photos, photo.persisted? ? photo.filename : "", for: id, data: { file_reader_target: "label" } %>
 
-  <%= render "active_storage/attachments/attachment", attachment: photo %>
+  <%= render "active_storage/attachments/attachment", attachment: photo, data: { file_reader_target: "image" } %>
 </li>

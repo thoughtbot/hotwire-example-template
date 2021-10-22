@@ -16,15 +16,21 @@
     <%= form.text_field :name %>
   </div>
 
-  <fieldset>
-    <ul>
+  <fieldset data-controller="clone" data-clone-placeholder-value="id" data-clone-selector-value="input[type=file]">
+    <template data-clone-target="template">
+      <%= render "albums/photos/form", form: form, photo: ActiveStorage::Attachment.new, id: form.field_id(:photos, "{{ id }}") %>
+    </template>
+
+    <ul data-clone-target="output">
       <% form.object.photos.each do |photo| %>
         <%= render "albums/photos/form", form: form, photo: photo, id: form.field_id(:photos, photo.id) %>
       <% end %>
     </ul>
 
     <%= form.label :photos %>
-    <%= form.file_field :photos, multiple: true, direct_upload: true %>
+    <%= form.file_field :photos, multiple: true, direct_upload: true,
+          data: { action: "input->clone#append" } %>
+    <%= form.hidden_field :photos, multiple: true, id: nil, value: nil %>
   </fieldset>
 
   <div class="actions">

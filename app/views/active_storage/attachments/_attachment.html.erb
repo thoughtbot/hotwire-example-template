@@ -1,1 +1,1 @@
-<%= image_tag attachment, alt: attachment.filename, height: 240 %>
+<%= image_tag attachment.persisted? ? attachment : "", alt: attachment.persisted? ? attachment.filename : "", height: 240, **local_assigns.without(:attachment) %>

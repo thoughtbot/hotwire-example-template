@@ -51,6 +51,18 @@ class AlbumsTest < ApplicationSystemTestCase
     assert_link alt: "photo.png", count: 0
   end
 
+  test "can update Album by uploading and discarding" do
+    @album.photos.attach io: file_fixture("photo.png").open, filename: "photo.png"
+
+    visit edit_album_url(@album)
+    uncheck "photo.png"
+    attach_file "Photos", 2.times.map { file_fixture("photo.png") }
+    click_on "Update Album"
+
+    assert_text "Album was successfully updated"
+    assert_link alt: "photo.png", count: 2
+  end
+
   test "should destroy Album" do
     visit albums_url
     click_on "Show this album", match: :first
