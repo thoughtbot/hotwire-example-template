@@ -8,7 +8,7 @@
     <% album.photos.each do |photo| %>
       <li>
         <%= link_to photo do %>
-          <%= image_tag photo, alt: photo.filename %>
+          <%= render "active_storage/attachments/attachment", attachment: photo %>
         <% end %>
       </li>
     <% end %>

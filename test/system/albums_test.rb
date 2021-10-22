@@ -24,15 +24,31 @@ class AlbumsTest < ApplicationSystemTestCase
   end
 
   test "should update Album" do
-    visit albums_url
-    click_on "Show this album", match: :first
+    @album.photos.attach io: file_fixture("photo.png").open, filename: "photo.png"
+
+    visit album_url(@album)
     click_on "Edit this album"
 
     fill_in "Name", with: @album.name
+    attach_file "Photos", 2.times.map { file_fixture("photo.png") }
     click_on "Update Album"
 
     assert_text "Album was successfully updated"
-    click_on "Back"
+    assert_text @album.name
+    assert_link alt: "photo.png", count: 3
+  end
+
+  test "can update Album to have no photos" do
+    @album.photos.attach io: file_fixture("photo.png").open, filename: "photo.png"
+
+    visit album_url(@album)
+    click_on "Edit this album"
+    uncheck "photo.png"
+    click_on "Update Album"
+
+    assert_text "Album was successfully updated"
+    assert_text @album.name
+    assert_link alt: "photo.png", count: 0
   end
 
   test "should destroy Album" do

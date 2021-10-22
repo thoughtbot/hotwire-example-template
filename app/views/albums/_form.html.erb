@@ -17,6 +17,12 @@
   </div>
 
   <fieldset>
+    <ul>
+      <% form.object.photos.each do |photo| %>
+        <%= render "albums/photos/form", form: form, photo: photo, id: form.field_id(:photos, photo.id) %>
+      <% end %>
+    </ul>
+
     <%= form.label :photos %>
     <%= form.file_field :photos, multiple: true, direct_upload: true %>
   </fieldset>

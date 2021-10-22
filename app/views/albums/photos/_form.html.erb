@@ -1,0 +1,9 @@
+<li>
+  <%= form.check_box :photos,
+    { id: id, checked: true, multiple: true },
+    photo.signed_id, [] %>
+
+  <%= form.label :photos, photo.filename, for: id %>
+
+  <%= render "active_storage/attachments/attachment", attachment: photo %>
+</li>
