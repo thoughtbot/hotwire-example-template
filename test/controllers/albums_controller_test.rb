@@ -23,6 +23,16 @@ class AlbumsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to album_url(Album.last)
   end
 
+  test "should create album with photos" do
+    assert_difference -> { ActiveStorage::Attachment.count } => +2 do
+      post albums_url, params: {
+        album: { name: @album.name, photos: 2.times.map { fixture_file_upload("photo.png") } }
+      }
+    end
+
+    assert_redirected_to album_url(Album.last)
+  end
+
   test "should show album" do
     get album_url(@album)
     assert_response :success
@@ -35,6 +45,16 @@ class AlbumsControllerTest < ActionDispatch::IntegrationTest
 
   test "should update album" do
     patch album_url(@album), params: { album: { name: @album.name } }
+    assert_redirected_to album_url(@album)
+  end
+
+  test "should update album with photos" do
+    assert_difference -> { @album.photos.count } => +2 do
+      patch album_url(@album), params: {
+        album: { photos: 2.times.map { fixture_file_upload("photo.png") } }
+      }
+    end
+
     assert_redirected_to album_url(@album)
   end
 

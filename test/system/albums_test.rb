@@ -15,10 +15,12 @@ class AlbumsTest < ApplicationSystemTestCase
     click_on "New album"
 
     fill_in "Name", with: @album.name
+    attach_file "Photos", 2.times.map { file_fixture("photo.png") }
     click_on "Create Album"
 
     assert_text "Album was successfully created"
-    click_on "Back"
+    assert_text @album.name
+    assert_link alt: "photo.png", count: 2
   end
 
   test "should update Album" do

@@ -4,6 +4,16 @@
     <%= album.name %>
   </p>
 
+  <ul>
+    <% album.photos.each do |photo| %>
+      <li>
+        <%= link_to photo do %>
+          <%= image_tag photo, alt: photo.filename %>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+
   <p>
     <%= link_to "Show this album", album %>
   </p>
