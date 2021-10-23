@@ -21,7 +21,7 @@
       <%= render "albums/photos/form", form: form, photo: ActiveStorage::Attachment.new, id: form.field_id(:photos, "{{ id }}") %>
     </template>
 
-    <ul data-clone-target="output">
+    <ul id="<%= form.field_id :photos_attachments %>" data-clone-target="output" data-turbo-permanent>
       <% form.object.photos.each do |photo| %>
         <%= render "albums/photos/form", form: form, photo: photo, id: form.field_id(:photos, photo.id) %>
       <% end %>

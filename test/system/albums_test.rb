@@ -23,6 +23,22 @@ class AlbumsTest < ApplicationSystemTestCase
     assert_link alt: "photo.png", count: 2
   end
 
+  test "should preserve file attachments through an invalid submission" do
+    visit new_album_url
+    fill_in "Name", with: ""
+    attach_file "Photos", file_fixture("photo.png")
+    click_on "Create Album"
+
+    assert_text "1 error prohibited this album from being saved"
+
+    fill_in "Name", with: @album.name
+    click_on "Create Album"
+
+    assert_text "Album was successfully created"
+    assert_text @album.name
+    assert_link alt: "photo.png", count: 1
+  end
+
   test "should update Album" do
     @album.photos.attach io: file_fixture("photo.png").open, filename: "photo.png"
 
