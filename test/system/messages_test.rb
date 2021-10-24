@@ -61,6 +61,31 @@ class MessagesTest < ApplicationSystemTestCase
 
       assert_no_link "Previous page"
       assert_messages messages.limit(page_size)
+    end
+  end
+
+  test "does not infinite-scroll to the previous page-worth of Message records" do
+    using_page_size 20 do |page_size|
+      messages = Message.most_recent_first
+
+      visit messages_path(page: 2)
+      scroll_to find_link "Next page"
+
+      assert_link "Previous page", count: 1
+      assert_messages messages.offset(page_size).limit(page_size)
+      assert_link "Next page", count: 1
+    end
+  end
+
+  test "infinite-scrolls to the next page-worth of Message records" do
+    using_page_size 20 do |page_size|
+      messages = Message.most_recent_first
+
+      visit messages_path
+      scroll_to find("article:last-of-type")
+
+      assert_no_link "Previous page"
+      assert_messages messages.limit(page_size * 2)
       assert_link "Next page", count: 1
     end
   end
@@ -72,7 +97,7 @@ class MessagesTest < ApplicationSystemTestCase
       visit messages_path(page: 3)
       click_link "Previous page", href: messages_path(page: 2)
       click_link "Previous page", href: messages_path(page: 1)
-      click_link "Next page"
+      scroll_to find_link "Next page"
 
       assert_link "Previous page", count: 0
       assert_messages messages.limit(page_size * 4)

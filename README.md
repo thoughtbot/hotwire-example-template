@@ -215,3 +215,19 @@ https://user-images.githubusercontent.com/2575027/152660556-34c303d4-08af-4df5-8
 ```
 
 https://user-images.githubusercontent.com/2575027/152660583-0203e2d5-edee-4153-a74b-7e8f40d477ec.mov
+
+## Scrolling infinitely
+
+```diff
+--- a/app/views/messages/index.html.erb
++++ b/app/views/messages/index.html.erb
+     <turbo-frame id="messages_page_<%= @page.next %>" class="group" data-turbo-action="replace"
++                 src="<%= pagy_url_for(@page, @page.next) %>" loading="lazy"
+                  data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
+       <%= link_to pagy_url_for(@page, @page.next), rel: "next", class: "hidden group-last-of-type:block" do %>
+         Next page
+       <% end %>
+     </turbo-frame>
+```
+
+https://user-images.githubusercontent.com/2575027/152660607-4d70e4e4-c8f4-427a-a2f1-42de2fabe910.mov

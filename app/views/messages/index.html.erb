@@ -22,6 +22,7 @@
 
   <% if @page.next %>
     <turbo-frame id="messages_page_<%= @page.next %>" class="group" data-turbo-action="replace"
+                 src="<%= pagy_url_for(@page, @page.next) %>" loading="lazy"
                  data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
       <%= link_to pagy_url_for(@page, @page.next), rel: "next", class: "hidden group-last-of-type:block" do %>
         Next page
