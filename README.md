@@ -83,3 +83,41 @@ Our view template:
 ```
 
 https://user-images.githubusercontent.com/2575027/152660466-a41560a9-a6b6-4438-9ae5-8d9b67a2b3b4.mov
+
+## Loading with Turbo Frames
+
+```diff
+--- a/app/views/messages/index.html.erb
++++ b/app/views/messages/index.html.erb
+ <h1>Messages</h1>
+
++<turbo-frame id="messages_page_<%= @page.page %>" class="grid gap-2" target="_top">
+   <% if @page.prev %>
++    <turbo-frame id="messages_page_<%= @page.prev %>">
+       <%= link_to pagy_url_for(@page, @page.prev), rel: "prev" do %>
+         Previous page
+       <% end %>
++    </turbo-frame>
+   <% end %>
+
+   <% @messages.each do |message| %>
+     <article class="border border-solid">
+       <%= message.content %>
+
+       <p>
+         Posted by: <%= link_to message.author, messages_path(author: message.author) %>
+       </p>
+     </article>
+   <% end %>
+
+   <% if @page.next %>
++    <turbo-frame id="messages_page_<%= @page.next %>">
+       <%= link_to pagy_url_for(@page, @page.next), rel: "next" do %>
+         Next page
+       <% end %>
++    </turbo-frame>
+   <% end %>
++</turbo-frame>
+```
+
+https://user-images.githubusercontent.com/2575027/152660510-68a9e849-81bc-41a5-a7e0-5d4ca1856556.mov

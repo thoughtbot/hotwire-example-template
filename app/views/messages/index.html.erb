@@ -1,23 +1,29 @@
 <h1>Messages</h1>
 
-<% if @page.prev %>
-  <%= link_to pagy_url_for(@page, @page.prev), rel: "prev" do %>
-    Previous page
+<turbo-frame id="messages_page_<%= @page.page %>" class="grid gap-2" target="_top">
+  <% if @page.prev %>
+    <turbo-frame id="messages_page_<%= @page.prev %>">
+      <%= link_to pagy_url_for(@page, @page.prev), rel: "prev" do %>
+        Previous page
+      <% end %>
+    </turbo-frame>
   <% end %>
-<% end %>
 
-<% @messages.each do |message| %>
-  <article class="border border-solid">
-    <%= message.content %>
+  <% @messages.each do |message| %>
+    <article class="border border-solid">
+      <%= message.content %>
 
-    <p>
-      Posted by: <%= link_to message.author, messages_path(author: message.author) %>
-    </p>
-  </article>
-<% end %>
-
-<% if @page.next %>
-  <%= link_to pagy_url_for(@page, @page.next), rel: "next" do %>
-    Next page
+      <p>
+        Posted by: <%= link_to message.author, messages_path(author: message.author) %>
+      </p>
+    </article>
   <% end %>
-<% end %>
+
+  <% if @page.next %>
+    <turbo-frame id="messages_page_<%= @page.next %>">
+      <%= link_to pagy_url_for(@page, @page.next), rel: "next" do %>
+        Next page
+      <% end %>
+    </turbo-frame>
+  <% end %>
+</turbo-frame>
