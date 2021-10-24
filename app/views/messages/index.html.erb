@@ -2,9 +2,9 @@
 
 <turbo-frame id="messages_page_<%= @page.page %>" class="grid gap-2" target="_top">
   <% if @page.prev %>
-    <turbo-frame id="messages_page_<%= @page.prev %>"
+    <turbo-frame id="messages_page_<%= @page.prev %>" class="group"
                  data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
-      <%= link_to pagy_url_for(@page, @page.prev), rel: "prev" do %>
+      <%= link_to pagy_url_for(@page, @page.prev), rel: "prev", class: "hidden group-first-of-type:block" do %>
         Previous page
       <% end %>
     </turbo-frame>
@@ -21,9 +21,9 @@
   <% end %>
 
   <% if @page.next %>
-    <turbo-frame id="messages_page_<%= @page.next %>"
+    <turbo-frame id="messages_page_<%= @page.next %>" class="group"
                  data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
-      <%= link_to pagy_url_for(@page, @page.next), rel: "next" do %>
+      <%= link_to pagy_url_for(@page, @page.next), rel: "next", class: "hidden group-last-of-type:block" do %>
         Next page
       <% end %>
     </turbo-frame>

@@ -7,7 +7,9 @@ class MessagesTest < ApplicationSystemTestCase
 
       visit messages_path
 
+      assert_no_link "Previous page"
       assert_messages messages.limit(page_size)
+      assert_link "Next page", count: 1
     end
   end
 
@@ -17,7 +19,9 @@ class MessagesTest < ApplicationSystemTestCase
 
       visit messages_path(page: 2)
 
+      assert_link "Previous page", count: 1
       assert_messages messages.offset(page_size).limit(page_size)
+      assert_link "Next page", count: 1
     end
   end
 
@@ -28,7 +32,9 @@ class MessagesTest < ApplicationSystemTestCase
       visit messages_path
       click_on("Next page") { _1["rel"] == "next" }
 
+      assert_link "Previous page", count: 1
       assert_messages messages.limit(page_size * 2)
+      assert_link "Next page", count: 1
     end
   end
 
@@ -39,7 +45,9 @@ class MessagesTest < ApplicationSystemTestCase
       visit messages_path(page: 2)
       click_on("Previous page") { _1["rel"] == "prev" }
 
+      assert_link "Previous page", count: 1
       assert_messages messages.limit(page_size * 2)
+      assert_link "Next page", count: 1
     end
   end
 

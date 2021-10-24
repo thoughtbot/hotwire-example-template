@@ -165,3 +165,33 @@ this behavior directly to `<turbo-frame>` elements through the
 [hotwired/turbo#146]: https://github.com/hotwired/turbo/pull/146
 
 https://user-images.githubusercontent.com/2575027/152660510-68a9e849-81bc-41a5-a7e0-5d4ca1856556.mov
+
+## Hiding pagination links
+
+```diff
+--- a/app/views/messages/index.html.erb
++++ b/app/views/messages/index.html.erb
+-    <turbo-frame id="messages_page_<%= @page.prev %>"
++    <turbo-frame id="messages_page_<%= @page.prev %>" class="group"
+                  data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
+-      <%= link_to pagy_url_for(@page, @page.prev), rel: "prev" do %>
++      <%= link_to pagy_url_for(@page, @page.prev), rel: "prev", class: "hidden group-first-of-type:block" do %>
+         Previous page
+       <% end %>
+     </turbo-frame>
+```
+
+```diff
+--- a/app/views/messages/index.html.erb
++++ b/app/views/messages/index.html.erb
+-    <turbo-frame id="messages_page_<%= @page.next %>"
++    <turbo-frame id="messages_page_<%= @page.next %>" class="group"
+                  data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
+-      <%= link_to pagy_url_for(@page, @page.next), rel: "next" do %>
++      <%= link_to pagy_url_for(@page, @page.next), rel: "next", class: "hidden group-last-of-type:block" do %>
+         Next page
+       <% end %>
+     </turbo-frame>
+```
+
+https://user-images.githubusercontent.com/2575027/152660556-34c303d4-08af-4df5-8fcd-38c1b0655b83.mov
