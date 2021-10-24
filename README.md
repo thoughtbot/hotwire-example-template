@@ -195,3 +195,23 @@ https://user-images.githubusercontent.com/2575027/152660510-68a9e849-81bc-41a5-a
 ```
 
 https://user-images.githubusercontent.com/2575027/152660556-34c303d4-08af-4df5-8fcd-38c1b0655b83.mov
+
+## Promoting navigations
+
+```diff
+--- a/app/views/messages/index.html.erb
++++ b/app/views/messages/index.html.erb
+-  <turbo-frame id="messages_page_<%= @page.prev %>" class="group"
++  <turbo-frame id="messages_page_<%= @page.prev %>" class="group" data-turbo-action="replace"
+                data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
+```
+
+```diff
+--- a/app/views/messages/index.html.erb
++++ b/app/views/messages/index.html.erb
+-  <turbo-frame id="messages_page_<%= @page.next %>" class="group"
++  <turbo-frame id="messages_page_<%= @page.next %>" class="group" data-turbo-action="replace"
+                data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
+```
+
+https://user-images.githubusercontent.com/2575027/152660583-0203e2d5-edee-4153-a74b-7e8f40d477ec.mov
