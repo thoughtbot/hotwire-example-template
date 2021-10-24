@@ -2,3 +2,10 @@
 #   record: name_of_fixture (ClassOfFixture)
 #   name: content
 #   body: <p>In a <i>million</i> stars!</p>
+
+<% (1..365).each do |number| %>
+message_from_<%= number %>_days_ago:
+  record: $LABEL (Message)
+  name: content
+  body: <div>Today is <%= number.days.ago.strftime("%A %d, %B %Y") %></div>
+<% end %>

@@ -3,4 +3,7 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "articles#index"
+  resources :messages, only: :index
+
+  root to: redirect("/messages")
 end

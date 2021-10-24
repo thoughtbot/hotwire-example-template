@@ -1,0 +1,7 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+<% (1..365).each do |number| %>
+message_from_<%= number %>_days_ago:
+  author: daysoftheweekbot
+  created_at: <%= number.days.ago %>
+<% end %>

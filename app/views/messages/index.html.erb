@@ -1,0 +1,23 @@
+<h1>Messages</h1>
+
+<% if @page.prev %>
+  <%= link_to pagy_url_for(@page, @page.prev), rel: "prev" do %>
+    Previous page
+  <% end %>
+<% end %>
+
+<% @messages.each do |message| %>
+  <article class="border border-solid">
+    <%= message.content %>
+
+    <p>
+      Posted by: <%= link_to message.author, messages_path(author: message.author) %>
+    </p>
+  </article>
+<% end %>
+
+<% if @page.next %>
+  <%= link_to pagy_url_for(@page, @page.next), rel: "next" do %>
+    Next page
+  <% end %>
+<% end %>
