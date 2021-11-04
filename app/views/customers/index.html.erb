@@ -1,3 +1,14 @@
+<nav>
+  <form>
+    <%= fields "", model: @search do |form| %>
+      <%= form.label :q, "Search" %>
+      <%= form.search_field :q %>
+
+      <button>Submit</button>
+    <% end %>
+  </form>
+</nav>
+
 <main>
   <table>
     <caption>Customers</caption>
