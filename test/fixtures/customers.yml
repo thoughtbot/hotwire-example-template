@@ -1,15 +1,20 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  name: MyText
-  email_address: MyText
-  first_purchase_on: 2021-11-04
+alice:
+  name: Alice
+  email_address: alice@example.com
+  first_purchase_on: 2020-11-04
   last_purchase_on: 2021-11-04
-  deactivated_on: 2021-11-04
 
-two:
-  name: MyText
-  email_address: MyText
+bob:
+  name: Bob
+  email_address: bob@example.com
+  first_purchase_on: 2021-10-04
+  last_purchase_on: 2021-11-04
+
+chuck:
+  name: Chuck
+  email_address: chuck@example.com
   first_purchase_on: 2021-11-04
   last_purchase_on: 2021-11-04
   deactivated_on: 2021-11-04

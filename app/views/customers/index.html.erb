@@ -1,0 +1,33 @@
+<main>
+  <table>
+    <caption>Customers</caption>
+
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email address</th>
+        <th>First purchase</th>
+        <th>Last purchase</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <% @customers.each do |customer| %>
+        <tr>
+          <td><%= customer.name %></td>
+          <td><%= customer.email_address %></td>
+          <td><%= customer.first_purchase_on %></td>
+          <td><%= customer.last_purchase_on %></td>
+          <td>
+            <% if customer.deactivated_on&.past? %>
+              Deactivated
+            <% else %>
+              Active
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</main>
