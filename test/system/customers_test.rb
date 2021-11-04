@@ -44,4 +44,22 @@ class CustomersTest < ApplicationSystemTestCase
       assert_css "tr", text: chuck.name
     end
   end
+
+  test "filters Customers by when they made their first purchase" do
+    travel_to "2021-11-04" do
+      alice, bob, chuck = customers :alice, :bob, :chuck
+
+      visit customers_path
+      within "aside" do
+        fill_in "First purchase before", with: "11-03-2021"
+        click_on "Submit"
+      end
+
+      within :table, "Customers" do
+        assert_css "tr:nth-of-type(1)", text: alice.name
+        assert_css "tr:nth-of-type(2)", text: bob.name
+        assert_no_css "tr", text: chuck.name
+      end
+    end
+  end
 end

@@ -16,6 +16,12 @@
         <%= form.label :deactivated %>
         <%= form.check_box :deactivated %>
 
+        <%= form.label :first_purchase_on_minimum, "First purchase after" %>
+        <%= form.date_field :first_purchase_on_minimum %>
+
+        <%= form.label :first_purchase_on_maximum, "First purchase before" %>
+        <%= form.date_field :first_purchase_on_maximum %>
+
         <button>Submit</button>
       <% end %>
     </form>

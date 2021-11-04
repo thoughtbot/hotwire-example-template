@@ -7,6 +7,6 @@ class CustomersController < ApplicationController
   private
 
   def search_params
-    params.permit(:q, :deactivated)
+    params.permit(:q, :deactivated, :first_purchase_on_minimum, :first_purchase_on_maximum)
   end
 end
