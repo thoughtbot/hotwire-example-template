@@ -1,5 +1,5 @@
 <nav>
-  <form>
+  <form data-controller="form" data-action="formdata->form#mergeWithSearchParams">
     <%= fields "", model: @search do |form| %>
       <%= form.label :q, "Search" %>
       <%= form.search_field :q %>
@@ -11,7 +11,7 @@
 
 <main>
   <aside>
-    <form>
+    <form data-controller="form" data-action="formdata->form#mergeWithSearchParams">
       <%= fields "", model: @search do |form| %>
         <%= form.label :deactivated %>
         <%= form.check_box :deactivated %>
