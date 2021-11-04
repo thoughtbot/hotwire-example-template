@@ -19,7 +19,6 @@ class CustomersTest < ApplicationSystemTestCase
     visit customers_path
     within "nav" do
       fill_in "Search", with: "alice"
-      click_on "Submit"
     end
 
     within :table, "Customers" do
@@ -35,7 +34,6 @@ class CustomersTest < ApplicationSystemTestCase
     visit customers_path
     within "aside" do
       check "Deactivated"
-      click_on "Submit"
     end
 
     within :table, "Customers" do
@@ -52,7 +50,6 @@ class CustomersTest < ApplicationSystemTestCase
       visit customers_path
       within "aside" do
         fill_in "First purchase before", with: "11-03-2021"
-        click_on "Submit"
       end
 
       within :table, "Customers" do
@@ -70,11 +67,9 @@ class CustomersTest < ApplicationSystemTestCase
       visit customers_path
       within "nav" do
         fill_in "Search", with: "alice"
-        click_on "Submit"
       end
       within "aside" do
         fill_in "First purchase before", with: "11-03-2021"
-        click_on "Submit"
       end
 
       within :table, "Customers" do

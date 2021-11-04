@@ -1,28 +1,32 @@
 <nav>
-  <form data-controller="form" data-action="formdata->form#mergeWithSearchParams">
+  <form data-controller="form" data-action="input->form#requestSubmit formdata->form#mergeWithSearchParams">
     <%= fields "", model: @search do |form| %>
       <%= form.label :q, "Search" %>
-      <%= form.search_field :q %>
+      <%= form.search_field :q, data: { focus_target: "element", turbo_permanent: true } %>
 
-      <button>Submit</button>
+      <noscript>
+        <button>Submit</button>
+      </noscript>
     <% end %>
   </form>
 </nav>
 
 <main>
   <aside>
-    <form data-controller="form" data-action="formdata->form#mergeWithSearchParams">
+    <form data-controller="form" data-action="input->form#requestSubmit formdata->form#mergeWithSearchParams">
       <%= fields "", model: @search do |form| %>
         <%= form.label :deactivated %>
-        <%= form.check_box :deactivated %>
+        <%= form.check_box :deactivated, data: { focus_target: "element" } %>
 
         <%= form.label :first_purchase_on_minimum, "First purchase after" %>
-        <%= form.date_field :first_purchase_on_minimum %>
+        <%= form.date_field :first_purchase_on_minimum, data: { focus_target: "element" } %>
 
         <%= form.label :first_purchase_on_maximum, "First purchase before" %>
-        <%= form.date_field :first_purchase_on_maximum %>
+        <%= form.date_field :first_purchase_on_maximum, data: { focus_target: "element" } %>
 
-        <button>Submit</button>
+        <noscript>
+          <button>Submit</button>
+        </noscript>
       <% end %>
     </form>
   </aside>
