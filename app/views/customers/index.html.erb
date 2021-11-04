@@ -10,6 +10,17 @@
 </nav>
 
 <main>
+  <aside>
+    <form>
+      <%= fields "", model: @search do |form| %>
+        <%= form.label :deactivated %>
+        <%= form.check_box :deactivated %>
+
+        <button>Submit</button>
+      <% end %>
+    </form>
+  </aside>
+
   <table>
     <caption>Customers</caption>
 

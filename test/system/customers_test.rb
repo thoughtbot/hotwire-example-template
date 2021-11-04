@@ -28,4 +28,20 @@ class CustomersTest < ApplicationSystemTestCase
       assert_no_css "tr", text: chuck.name
     end
   end
+
+  test "filters Customers by their deactivation status" do
+    alice, bob, chuck = customers :alice, :bob, :chuck
+
+    visit customers_path
+    within "aside" do
+      check "Deactivated"
+      click_on "Submit"
+    end
+
+    within :table, "Customers" do
+      assert_no_css "tr", text: alice.name
+      assert_no_css "tr", text: bob.name
+      assert_css "tr", text: chuck.name
+    end
+  end
 end

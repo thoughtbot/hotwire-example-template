@@ -7,6 +7,6 @@ class CustomersController < ApplicationController
   private
 
   def search_params
-    params.permit(:q)
+    params.permit(:q, :deactivated)
   end
 end
