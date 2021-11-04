@@ -52,6 +52,21 @@ ActiveRecord::Schema[7.0].define(version: 2022_02_13_162643) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "customers", force: :cascade do |t|
+    t.text "name"
+    t.text "email_address"
+    t.date "first_purchase_on"
+    t.date "last_purchase_on"
+    t.date "deactivated_on"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["deactivated_on"], name: "index_customers_on_deactivated_on"
+    t.index ["email_address"], name: "index_customers_on_email_address"
+    t.index ["first_purchase_on"], name: "index_customers_on_first_purchase_on"
+    t.index ["last_purchase_on"], name: "index_customers_on_last_purchase_on"
+    t.index ["name"], name: "index_customers_on_name"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
 end
