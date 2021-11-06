@@ -8,4 +8,10 @@ class Message < ApplicationRecord
 
   scope :latest_first, -> { order created_at: :desc }
   scope :involving, ->(users) { where sender: users, recipient: users }
+
+  def broadcast_append_to_participants
+    streamables = values_at(:sender, :recipient).sort
+
+    broadcast_append_to streamables
+  end
 end

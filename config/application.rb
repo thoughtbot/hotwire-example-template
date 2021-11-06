@@ -18,5 +18,7 @@ module HotwireExampleTemplate
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    config.action_controller.default_url_options = config.action_mailer.default_url_options = default_url_options
   end
 end

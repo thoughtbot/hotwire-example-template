@@ -1,7 +1,8 @@
 class MessagesController < ApplicationController
   def index
     @user = find_user
-    @messages = Message.latest_first.involving [ Current.user, @user ]
+    @streamables = [ Current.user, @user ].sort
+    @messages = Message.latest_first.involving @streamables
   end
 
   def create
@@ -9,6 +10,7 @@ class MessagesController < ApplicationController
     @message = Current.user.sent_messages.new message_params.merge(recipient: @user)
 
     @message.save!
+    @message.broadcast_append_to_participants
 
     redirect_to user_messages_path(@user)
   end
