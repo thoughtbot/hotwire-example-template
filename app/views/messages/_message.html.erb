@@ -1,10 +1,12 @@
-<article id="<%= dom_id message %>" class="flex items-start"
-         data-controller="autoscroll">
+<article id="<%= dom_id message %>" class="flex items-start group current:flex-row-reverse"
+         data-controller="autoscroll current"
+         data-current-user-class="current"
+         data-current-token-value="<%= message.sender.signed_id purpose: "current" %>">
   <%= image_tag message.sender.avatar, class: "rounded-full mx-4",
         width: 32, height: 32, alt: message.sender.name %>
 
-  <div class="flex flex-col items-start space-y-1">
-    <div class="rounded-xl bg-gray-100 p-2">
+  <div class="flex flex-col items-start space-y-1 group-current:items-end">
+    <div class="rounded-xl bg-gray-100 p-2 group-current:bg-blue-500 group-current:text-white">
       <%= message.content %>
     </div>
 
