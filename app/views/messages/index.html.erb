@@ -4,9 +4,11 @@
   </section>
 
   <aside>
-    <%= form_with model: [ @user, @messages.new ] do |form| %>
+    <%= form_with model: [ @user, @messages.new ], data: { controller: "hotkey" } do |form| %>
       <%= form.label :content %>
-      <%= form.rich_text_area :content, class: "h-24 overflow-y-scroll", autofocus: true %>
+      <%= form.rich_text_area :content, class: "h-24 overflow-y-scroll", autofocus: true,
+            data: { hotkey_modified_param: true, hotkey_key_param: "Enter",
+                    action: "keydown->hotkey#requestSubmit" } %>
 
       <button>Send</button>
     <% end %>
