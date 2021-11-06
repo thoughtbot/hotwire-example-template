@@ -1,0 +1,5 @@
+<% @users.each do |user| %>
+  <%= link_to user_messages_path(user) do %>
+    Conversation with <%= user.name %>
+  <% end %>
+<% end %>

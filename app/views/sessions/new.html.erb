@@ -1,0 +1,5 @@
+<%= form_with url: sessions_path do |form| %>
+  <% @users.each do |user| %>
+    <button name="session[id]" value="<%= user.id %>">Sign in as <%= user.name %></button>
+  <% end %>
+<% end %>

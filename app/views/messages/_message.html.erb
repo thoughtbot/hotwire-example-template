@@ -1,0 +1,14 @@
+<article id="<%= dom_id message %>" class="flex items-start">
+  <%= image_tag message.sender.avatar, class: "rounded-full mx-4",
+        width: 32, height: 32, alt: message.sender.name %>
+
+  <div class="flex flex-col items-start space-y-1">
+    <div class="rounded-xl bg-gray-100 p-2">
+      <%= message.content %>
+    </div>
+
+    <time datetime="<%= message.created_at.iso8601 %>">
+      <%= localize message.created_at, format: :long %>
+    </time>
+  </div>
+</article>

@@ -1,0 +1,3 @@
+one_avatar_blob: <%= ActiveStorage::FixtureSet.blob filename: "one.jpg" %>
+
+two_avatar_blob: <%= ActiveStorage::FixtureSet.blob filename: "two.png" %>

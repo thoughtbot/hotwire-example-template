@@ -2,3 +2,13 @@
 #   record: name_of_fixture (ClassOfFixture)
 #   name: content
 #   body: <p>In a <i>million</i> stars!</p>
+
+one_to_two:
+  record: one (Message)
+  name: content
+  body: <div>Hello, from One!</div>
+
+two_to_one:
+  record: two (Message)
+  name: content
+  body: <div>Hello, from Two! Reply to this from a different browser window!</div>

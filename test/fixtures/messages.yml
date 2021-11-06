@@ -2,8 +2,8 @@
 
 one:
   sender: one
-  recipient: one
+  recipient: two
 
 two:
   sender: two
-  recipient: two
+  recipient: one

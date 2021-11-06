@@ -1,0 +1,14 @@
+<main class="flex flex-col h-screen">
+  <section class="flex-1 flex flex-col overflow-y-scroll space-y-2">
+    <%= render partial: "messages/message", collection: @messages.reverse %>
+  </section>
+
+  <aside>
+    <%= form_with model: [ @user, @messages.new ] do |form| %>
+      <%= form.label :content %>
+      <%= form.rich_text_area :content, class: "h-24 overflow-y-scroll", autofocus: true %>
+
+      <button>Send</button>
+    <% end %>
+  </aside>
+</main>
