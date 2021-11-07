@@ -1,4 +1,5 @@
-<article id="<%= dom_id message %>" class="flex items-start">
+<article id="<%= dom_id message %>" class="flex items-start"
+         data-controller="autoscroll">
   <%= image_tag message.sender.avatar, class: "rounded-full mx-4",
         width: 32, height: 32, alt: message.sender.name %>
 
