@@ -3,6 +3,8 @@
 <main class="flex flex-col h-screen">
   <section class="flex-1 flex flex-col overflow-y-scroll space-y-2" id="messages">
     <%= render partial: "messages/message", collection: @messages.reverse %>
+
+    <p class="hidden text-lg mx-auto only:block">Start the conversation!</p>
   </section>
 
   <aside>
