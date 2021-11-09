@@ -10,8 +10,10 @@
       <%= message.content %>
     </div>
 
-    <time datetime="<%= message.created_at.iso8601 %>">
-      <%= localize message.created_at, format: :long %>
-    </time>
+    <relative-time datetime="<%= message.created_at.iso8601 %>">
+      <time datetime="<%= message.created_at.iso8601 %>">
+        <%= localize message.created_at, format: :long %>
+      </time>
+    </relative-time>
   </div>
 </article>
