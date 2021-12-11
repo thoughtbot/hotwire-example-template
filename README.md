@@ -986,3 +986,258 @@ Like other strategies, we're responsible for invalidating yet another cache.
 Unfortunately in this case, it's element-by-element. This can be an extremely
 powerful technique for situations that call for it, but can quickly become
 tedious and difficult to maintain.
+
+## Preserving unsaved form field state (globally)
+
+In practice, managing the permanence of individual elements can be tedious. If
+the state maintenance grows to be too much of a burden, there are other
+complementary strategies that operate at a document-wide scope.
+
+To start, let's revert the changes that introduces `[data-turbo-permanent]` to
+our `tasks/index` template:
+
+```diff
+--- a/app/views/tasks/index.html.erb
++++ b/app/views/tasks/index.html.erb
+   <details id="new_task_disclosure" data-disclosure-target="details">
+     <summary>Add task</summary>
+-    <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy" data-turbo-permanent
+-                 data-controller="permanence"
+-                 data-action="turbo:submit-start->permanence#invalidate
+-                              turbo:frame-render->permanence#cache"></turbo-frame>
++    <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy"></turbo-frame>
+   </details>
+ </section>
+```
+
+Next, we'll depend on the [github/session-resume][] package, which we'll control
+with a new `session-resume` controller. To start, we'll declare a
+`setForm(event)` action to capture `<form>` element state and forward it along
+to the `@github/session-resume` package's `setForm()` function:
+
+```javascript
+import { Controller } from "@hotwired/stimulus"
+import { setForm } from "https://cdn.skypack.dev/@github/session-resume"
+
+export default class extends Controller {
+  setForm(event) {
+    setForm(event)
+  }
+}
+```
+
+We'll route `turbo:submit-start` events to the `session-resume#setForm` action:
+
+```diff
+ <!DOCTYPE html>
+-<html data-controller="disclosure scroll"
++<html data-controller="disclosure scroll session-resume"
+       data-action="turbo:before-visit->scroll#cache
+                    turbo:visit->scroll#preventVisitScroll
+-                   turbo:load->scroll#read">
++                   turbo:load->scroll#read
++                   turbo:submit-start->session-resume#setForm">
+   <head>
+     <title>HotwireExampleTemplate</title>
+     <meta name="viewport" content="width=device-width,initial-scale=1">
+```
+
+[github/session-resume]: https://github.com/github/session-resume
+
+With that action in place, we'll need to configure which fields
+`@github/session-resume` should treat as cacheable. To do so, route
+`turbo:before-render` events to `session-resume#cache`:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+ <html data-controller="scroll session-resume"
+       data-action="turbo:before-visit->scroll#cache
+                    turbo:visit->scroll#preventVisitScroll
+                    turbo:load->scroll#read
+-                   turbo:submit-start->session-resume#setForm">
++                   turbo:submit-start->session-resume#setForm
++                   turbo:before-render->session-resume#cache">
+   <head>
+     <title>HotwireExampleTemplate</title>
+     <meta name="viewport" content="width=device-width,initial-scale=1">
+```
+
+We'll implement `session-resume#cache` to invoke the
+`persistResumableFields(id)` function provided by the `@github/session-resume`
+package. We'll use the [window.location][] value's [pathname][]:
+
+[pathname]: https://developer.mozilla.org/en-US/docs/Web/API/Location/pathname
+
+```diff
+--- a/app/javascript/controllers/session_resume_controller.js
++++ b/app/javascript/controllers/session_resume_controller.js
+ import { Controller } from "@hotwired/stimulus"
+-import { setForm } from "https://cdn.skypack.dev/@github/session-resume"
++import { persistResumableFields, setForm } from "https://cdn.skypack.dev/@github/session-resume"
+
+ export default class extends Controller {
+   setForm(event) {
+     setForm(event)
+   }
++
++  cache() {
++    persistResumableFields(getPageID())
++  }
+ }
++
++function getPageID() {
++  return window.location.pathname
++}
+```
+
+Without additional configuration, the `session-resume` package queries the page
+for elements that match the `.js-session-resumable` CSS query. As an alternative
+to declaring that class on each field, we can provide the
+`persistResumableFields(id)` call with a `selector:` option, which we'll read
+from the `this.selectorValue` Stimulus Value:
+
+```diff
+--- a/app/javascript/controllers/session_resume_controller.js
++++ b/app/javascript/controllers/session_resume_controller.js
+ import { Controller } from "@hotwired/stimulus"
+ import { restoreResumableFields, setForm } from "https://cdn.skypack.dev/@github/session-resume"
+
+ export default class extends Controller {
++  static get values() { return { selector: String } }
++
+   setForm(event) {
+     setForm(event)
+   }
+
+   cache() {
+     persistResumableFields(getPageID(), { selector: this.selectorValue })
+   }
+ }
+
+ function getPageID() {
+   return window.location.pathname
+ }
+```
+
+We'll declare the value's backing attribute to match any `input` element that
+does not collect a password:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+ <html data-controller="scroll session-resume"
++      data-session-resume-selector-value="input:not([type=password])"
+       data-action="turbo:before-visit->scroll#cache
+                    turbo:visit->scroll#preventVisitScroll
+```
+
+Finally, we'll need to read from the cache whenever the Visit navigates:
+
+```diff
+--- a/app/javascript/controllers/session_resume_controller.js
++++ b/app/javascript/controllers/session_resume_controller.js
+ import { Controller } from "@hotwired/stimulus"
+-import { persistResumableFields, restoreResumableFields, setForm } from "https://cdn.skypack.dev/@github/session-resume"
++import { persistResumableFields, restoreResumableFields, setForm } from "https://cdn.skypack.dev/@github/session-resume"
+
+ export default class extends Controller {
+   static get values() { return { selector: String } }
+
+   setForm(event) {
+     setForm(event)
+   }
+
+   cache() {
+     persistResumableFields(getPageID(), { selector: this.selectorValue })
+   }
++
++  read() {
++    restoreResumableFields(getPageID())
++  }
+ }
+
+ function getPageID() {
+   return window.location.pathname
+ }
+```
+
+To start, we'll route `turbo:render` events to the `session-resume#read` action:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+ <html data-controller="scroll session-resume"
+       data-session-resume-selector-value="input:not([type=password])"
+       data-action="turbo:before-visit->scroll#cache
+                    turbo:visit->scroll#preventVisitScroll
+                    turbo:load->scroll#read
+                    turbo:submit-start->session-resume#setForm
+-                   turbo:before-render->session-resume#cache">
++                   turbo:before-render->session-resume#cache
++                   turbo:render->session-resume#read">
+   <head>
+     <title>HotwireExampleTemplate</title>
+     <meta name="viewport" content="width=device-width,initial-scale=1">
+```
+
+During a Visit, Turbo dispatches `turbo:render` when advancing or replacing the
+browser's history. It'll also be dispatched during restoration visits that
+render pages from the Snapshot cache.
+
+Unfortunately, this is an incomplete solution. On top of page navigations, the
+page's content can change in two additional asynchronous ways:
+
+1. Turbo Stream operations broadcast over Server-sent events or Web Sockets
+2. Turbo Frame-scoped navigations
+
+Our application isn't broadcasting Turbo Streams over Server-sent events or Web
+Sockets, but we _are_ loading the New Task form within a `<turbo-frame>`
+element.
+
+During a frame navigation, the `<turbo-frame>` element will dispatch
+`turbo:frame-render` events, and those events will bubble up the document. We'll
+route those events to the `session-resume#read` action:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+ <html data-controller="scroll session-resume"
+       data-session-resume-selector-value="input:not([type=password])"
+       data-action="turbo:before-visit->scroll#cache
+                    turbo:visit->scroll#preventVisitScroll
+                    turbo:load->scroll#read
+                    turbo:submit-start->session-resume#setForm
+                    turbo:before-render->session-resume#cache
+-                   turbo:render->session-resume#read">
++                   turbo:render->session-resume#read
++                   turbo:frame-render->session-resume#read">
+   <head>
+     <title>HotwireExampleTemplate</title>
+     <meta name="viewport" content="width=device-width,initial-scale=1">
+```
+
+https://user-images.githubusercontent.com/2575027/148582495-4d1ed108-f34a-4319-a8ec-41ef94b18a07.mov
+
+What have we gained?
+---
+
+Our application's server doesn't include any Turbo-specific code. Our
+controllers and routes are completely unaware of the techniques the browser is
+using to progressively enhance the end-user's experience. We've replaced our
+custom MIME type response with a Standards-based HTTP redirect.
+
+While our client still requires bespoke JavaScript to achieve our outcomes, that
+JavaScript is generic and flexible enough to apply universally, and isn't
+tailored to any one particular resource or controller action.
+
+At what cost?
+---
+
+We forfeit the state preservation gains won from introducing Turbo Streams.
+We're now responsible for managing yet another cache through Turbo lifecycle
+events.
