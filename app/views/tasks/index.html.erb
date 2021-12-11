@@ -1,0 +1,20 @@
+<section>
+  <h1>To-do (<%= @tasks.to_do.size %>)</h1>
+
+  <ol>
+    <%= render collection: @tasks.to_do, partial: "tasks/task" %>
+  </ol>
+
+  <details>
+    <summary>Add task</summary>
+    <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy"></turbo-frame>
+  </details>
+</section>
+
+<section>
+  <h1>Done (<%= @tasks.done.size %>)</h1>
+
+  <ol>
+    <%= render collection: @tasks.done, partial: "tasks/task" %>
+  </ol>
+</section>

@@ -1,0 +1,7 @@
+<turbo-frame id="<%= dom_id @task %>">
+  <%= form_with model: @task, namespace: @task.id do |form| %>
+    <%= render partial: "tasks/form", object: form %>
+
+    <%= link_to "Cancel", tasks_path %>
+  <% end %>
+</turbo-frame>

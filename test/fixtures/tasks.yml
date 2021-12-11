@@ -1,9 +1,8 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  details: MyText
-  done_at: 2021-12-18 16:30:02
-
-two:
-  details: MyText
-  done_at: 2021-12-18 16:30:02
+<% (Rails.env.development? ? 25 : 0).times do |index| %>
+task_<%= index %>:
+  details: "Task #<%= index %>"
+  created_at: <%= index.seconds.ago %>
+  updated_at: <%= index.seconds.ago %>
+<% end %>

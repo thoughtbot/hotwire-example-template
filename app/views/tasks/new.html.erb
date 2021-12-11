@@ -1,0 +1,5 @@
+<turbo-frame id="new_task">
+  <%= form_with model: @task, data: { turbo_frame: "_top" } do |form| %>
+    <%= render partial: "tasks/form", object: form %>
+  <% end %>
+</turbo-frame>

@@ -1,0 +1,16 @@
+<li>
+  <turbo-frame id="<%= dom_id task %>">
+    <%= form_with model: task, namespace: task.id, data: { turbo_frame: "_top" } do |form| %>
+      <%= form.button :done, value: !task.done do %>
+        <% if task.done %>
+          To do
+        <% else %>
+          Done
+        <% end %>
+      <% end %>
+      <%= form.label :done, task.details %>
+
+      <%= link_to "Edit", edit_task_path(task) %>
+    <% end %>
+  </turbo-frame>
+</li>
