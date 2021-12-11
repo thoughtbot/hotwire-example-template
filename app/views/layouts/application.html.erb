@@ -1,5 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html data-controller="scroll"
+      data-action="turbo:before-visit->scroll#cache
+                   turbo:before-visit->scroll#invalidate
+                   turbo:visit->scroll#preventVisitScroll
+                   turbo:load->scroll#read">
   <head>
     <title>HotwireExampleTemplate</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">

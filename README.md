@@ -481,3 +481,229 @@ those operations might grow. Regardless of the number or scope of operations,
 our application is responsible for executing them all.
 
 When we deviate from HTTP Standards, we're on our.
+
+## Preserving state across Turbo Drive Visits
+
+Most applications have pages or experiences that tip the scales in favor of
+Turbo Stream, and make the trade-offs involved with appear to be a fair bargain.
+
+For the rest of the pages, progressively enhanced HTTP redirects have a lot to
+offer. Let's revert our changes to their original state, abandoning our usage of
+Turbo Streams and returning to redirects and full-page navigations.
+
+One of the central pillars of [Turbo Drive's value proposition][Turbo Drive]
+value proposition is its ability to persist the current document's `<html>`
+element and retain the current JavaScript process' references to the
+`window` and `document` instances.
+
+When navigating from one page to another, Turbo Drive updates the page's content
+by replacing the current `<body>` element with a new `<body>` element extracted
+from the response's HTML.
+
+Turbo Drive-enabled applications can leverage that permanence by declaring
+long-lived [Stimulus Controllers][] on the `<html>` document.
+
+Where does our application fit on a continuum between possible with Turbo Drive
+and the interactivity that's possible with Turbo Streams? Where is our threshold
+of comfortability?
+
+What tools do we have at our disposal to [Progressively Enhance][] the browser's
+built-in behavior?
+
+[Turbo Drive]: https://turbo.hotwired.dev/handbook/introduction#turbo-drive%3A-navigate-within-a-persistent-process
+[Stimulus Controllers]: https://stimulus.hotwired.dev/handbook/hello-stimulus#controllers-bring-html-to-life
+[Progressively Enhance]: https://developer.mozilla.org/en-US/docs/Glossary/Progressive_Enhancement
+
+## Preserving scroll state
+
+Since our original implementation relied upon full-page redirection,
+user-initiated Form Submissions would discard any user-initiated scrolling and
+would scroll to the top of the new page, falling back to the browser's built-in
+behavior.
+
+When the response to a Form Submission is a redirect _back to the current page_,
+how might we preserve that browser's scroll state?
+
+During a navigation, Turbo Drive dispatches various [events][]. To start, we'll
+cache the page's scroll state before the Visit. We'll route
+[turbo:before-visit][] events to a `cache(event)` action declared within a
+`scroll` controller by declaring `[data-controller]` and `[data-action]`
+attributes on our document's `<html>` element:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+<!DOCTYPE html>
+-<html>
++<html data-controller="scroll"
++      data-action="turbo:before-visit->scroll#cache">
+   <head>
+     <title>HotwireExampleTemplate</title>
+     <meta name="viewport" content="width=device-width,initial-scale=1">
+```
+
+Next, we'll declare the controller's implementation:
+
+```javascript
+// app/javascript/controllers/scroll_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static get values() { return { top: Number } }
+
+  cache() {
+    this.topValue = this.element.scrollTop
+  }
+}
+```
+
+We persist the `<html>` element's scroll depth by assigning its value to a
+[Stimulus Value][] named `top`. Our controller instance has access through the
+`this.topValue` property. Any changes to that property are written to the
+`<html>` element's `[data-scroll-top-value]` attribute.
+
+In some situations, we might want to invalidate that cache if the Visit is to
+another page. This action poses an opportunity for applications to encode
+whatever invalidation logic they need. We can do so from an `invalidate()`
+action that resets the `topValue` property whenever the `turbo:before-visit`
+event's fires with an `event.details.url` that's different from the  `pathname`
+of the [window.location][]:
+
+```diff
+--- a/app/javascript/controllers/scroll_controller.js
++++ b/app/javascript/controllers/scroll_controller.js
+   cache() {
+     this.topValue = this.element.scrollTop
+   }
++
++  invalidate({ detail: { url } }) {
++    const { pathname } = new URL(url)
++
++    if (window.location.pathname != pathname) this.topValue = 0
++  }
+```
+
+We'll declare a second `[data-action]` entry to route `turbo:before-visit`
+events to that action in the same way as the `scroll#cache` action:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+ <html data-controller="scroll"
+-      data-action="turbo:before-visit->scroll#cache">
++      data-action="turbo:before-visit->scroll#cache
++                   turbo:before-visit->scroll#invalidate">
+```
+
+[events]: https://turbo.hotwired.dev/reference/events
+[turbo:before-visit]: https://turbo.hotwired.dev/handbook/drive#canceling-visits-before-they-start
+[window.location]: https://developer.mozilla.org/en-US/docs/Web/API/Window/location
+[Stimulus Value]: https://stimulus.hotwired.dev/reference/values
+
+Next, we'll want to read from that cache and restore the document's scroll depth
+following a successful Turbo Drive Visit. To do so, we'll route `turbo:load`
+events to a `read(event)` action in our `scroll` controller:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+ <html data-controller="scroll"
+       data-action="turbo:before-visit->scroll#cache
+-                   turbo:before-visit->scroll#invalidate">
++                   turbo:before-visit->scroll#invalidate
++                   turbo:load->scroll#read">
+```
+
+The `read(event)` implementation reads from the `[data-scroll-top-value]`
+attribute and assigns to the element's [scrollTop][] property:
+
+```diff
+--- a/app/javascript/controllers/scroll_controller.js
++++ b/app/javascript/controllers/scroll_controller.js
+   invalidate({ detail: { url } }) {
+     const { pathname } = new URL(url)
+
+     if (window.location.pathname != pathname) this.topValue = 0
+   }
++
++  read() {
++    this.element.scrollTop = this.topValue
++  }
+}
+```
+
+[scrollTop]: https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollTop
+
+**Caveat:** Current versions of Turbo (those `<= 7.1.0`) require a scrolling
+work-around that prevents a Visit from scrolling so that applications can manage
+scrolling on its behalf.
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+ <html>
+ <html data-controller="scroll"
+       data-action="turbo:before-visit->scroll#cache
++                   turbo:visit->scroll#preventVisitScroll
+                    turbo:load->scroll#read">
+   <head>
+     <title>HotwireExampleTemplate</title>
+     <meta name="viewport" content="width=device-width,initial-scale=1">
+
+--- a/app/javascript/controllers/scroll_controller.js
++++ b/app/javascript/controllers/scroll_controller.js
+ import { Controller } from "@hotwired/stimulus"
++import { Turbo } from "@hotwired/turbo-rails"
+
+ export default class extends Controller {
+   static get values() { return { top: Number } }
+
+   cache() {
+     this.topValue = this.element.scrollTop
+   }
+
+   invalidate({ detail: { url } }) {
+     const { pathname } = new URL(url)
+
+     if (window.location.pathname != pathname) this.topValue = 0
+   }
+
+   read() {
+     this.element.scrollTop = this.topValue
+   }
++
++  preventVisitScroll() {
++    const { currentVisit } = Turbo.session.navigator
++
++    if (currentVisit) currentVisit.scrolled = true
++  }
+}
+```
+
+What have we gained?
+---
+
+Since we're returned to "full-page" redirection, we no longer have to
+micro-manage the _contents_ of our document. We don't need to create and manage
+a dedicated `.turbo_stream.erb` template, and can rely on built-in browser
+behavior and compliance with HTTP Standards.
+
+At what cost?
+---
+
+While we don't have to manage the changing _contents_ of the page transition,
+we're responsible for maintaining _context_ across changes.
+
+Our scope changes from thinking in terms of elements to thinking in terms of
+URLs and documents. This means that our application is responsible for managing
+and invalidating cached scroll values.
+
+While we've restored the scroll depth preserving behavior enabled by Turbo
+Streams at the cost of regressions in the preservation of other state like the
+expansion of disclosures and unsaved values in form fields:
+
+https://user-images.githubusercontent.com/2575027/148579729-2479f8c8-f668-4a8e-9cc3-1af0c242f555.mov
