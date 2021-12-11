@@ -1,3 +1,4 @@
 <%= form.label :details, class: "sr-only" %>
-<%= form.text_field :details, required: true, pattern: /.*\w+.*/ %>
+<%= form.text_field :details, required: true, pattern: /.*\w+.*/,
+      data: { session_resume_target: "field" } %>
 <%= form.button %>

@@ -2,17 +2,19 @@ import { Controller } from "@hotwired/stimulus"
 import { setForm, persistResumableFields, restoreResumableFields } from "https://cdn.skypack.dev/@github/session-resume"
 
 export default class extends Controller {
-  static values = { selector: String }
+  static targets = [ "field" ]
 
   setForm(event) {
     setForm(event)
   }
 
   cache() {
-    persistResumableFields(getPageID(), { selector: this.selectorValue })
+    const selector = `[data-${this.identifier}-target="field"]`
+
+    persistResumableFields(getPageID(), { selector })
   }
 
-  read() {
+  fieldTargetConnected() {
     restoreResumableFields(getPageID())
   }
 }

@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html data-controller="scroll disclosure session-resume"
-      data-session-resume-selector-value="input:not([type=password])"
       data-action="turbo:before-visit->scroll#cache
                    turbo:before-visit->scroll#invalidate
                    turbo:before-visit->disclosure#invalidate
                    turbo:visit->scroll#preventVisitScroll
                    turbo:load->scroll#read
                    turbo:submit-start->session-resume#setForm
-                   turbo:before-render->session-resume#cache
-                   turbo:render->session-resume#read
-                   turbo:frame-render->session-resume#read">
+                   turbo:before-render->session-resume#cache">
   <head>
     <title>HotwireExampleTemplate</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">

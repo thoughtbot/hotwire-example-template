@@ -1221,6 +1221,84 @@ route those events to the `session-resume#read` action:
      <meta name="viewport" content="width=device-width,initial-scale=1">
 ```
 
+If we wanted more granular control over _which_ fields are persisted and _when_
+they're persisted, we could replace our actions that route `turbo:render` and
+`turbo:frame-render` events with Stimulus 3's support for [target callbacks][].
+
+[target callbacks]: https://stimulus.hotwired.dev/reference/targets#connected-and-disconnected-callbacks
+
+First, we could mark the field with the `[data-session-resume-target="field"]`
+attribute:
+
+```diff
+--- a/app/views/tasks/new.html.erb
++++ b/app/views/tasks/new.html.erb
+ <turbo-frame id="new_task">
+   <%= form_with model: @task do |form| %>
+     <%= form.label :details, class: "sr-only" %>
+-    <%= form.text_field :details, required: true, pattern: /.*\w+.*/, autofocus: true %>
++    <%= form.text_field :details, required: true, pattern: /.*\w+.*/, autofocus: true,
++          data: { session_resume_target: "field" } %>
+     <%= form.button %>
+   <% end %>
+ </turbo-frame>
+```
+
+Then, we could change the implementation to use the same
+`[data-session-resume-target="field"]` attribute as the selector (support for
+passing a list of `Element` instance directly is proposed in
+[github/session-resume#20][]):
+
+[github/session-resume#20]: https://github.com/github/session-resume/pull/20
+
+```diff
+--- a/app/javascript/controllers/session_resume_controller.js
++++ b/app/javascript/controllers/session_resume_controller.js
+ export default class extends Controller {
+-  static get values() { return { selector: String } }
++  static get targets() { return [ "field" ] }
+
+   setForm(event) {
+     setForm(event)
+   }
+
+   cache() {
+-    persistResumableFields(getPageID(), { selector: this.selectorValue })
++    const selector = `[data-${this.identifier}-target="field"]`
++
++    persistResumableFields(getPageID(), { selector })
+   }
+
+-  read() {
++  fieldTargetConnected() {
+     restoreResumableFields(getPageID())
+   }
+ }
+```
+
+With those changes in place, we'd remove the
+`[data-session-resume-selctor-value]` and `turbo:render` and
+`turbo:frame-render` action routing descriptors:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+ <html data-controller="scroll session-resume"
+-      data-session-resume-selector-value="input:not([type=password])"
+       data-action="turbo:before-visit->scroll#cache
+                    turbo:visit->scroll#preventVisitScroll
+                    turbo:load->scroll#read
+                    turbo:submit-start->session-resume#setForm
+-                   turbo:before-render->session-resume#cache
+-                   turbo:render->session-resume#read
+-                   turbo:frame-render->session-resume#read">
++                   turbo:before-render->session-resume#cache">
+   <head>
+     <title>HotwireExampleTemplate</title>
+     <meta name="viewport" content="width=device-width,initial-scale=1">
+```
+
 https://user-images.githubusercontent.com/2575027/148582495-4d1ed108-f34a-4319-a8ec-41ef94b18a07.mov
 
 What have we gained?
@@ -1241,3 +1319,25 @@ At what cost?
 We forfeit the state preservation gains won from introducing Turbo Streams.
 We're now responsible for managing yet another cache through Turbo lifecycle
 events.
+
+## Wrapping up
+
+We started with a minimal controller that served `index`, `new`, and `edit`
+templates and responded to `update` submissions with HTTP redirects.
+
+In an effort to progressively enhance the end-user experience, we introduced
+Turbo Stream in response to form submissions. When the precision of the Turbo
+Stream operations proved to be too fine-grained, we investigated alternatives
+making trade-offs all along the way.
+
+First, we reverted to full-page navigations driven by HTTP redirects. Then we
+accepted the responsibility of maintaining scroll depth across visits, then
+disclosure state, then unsaved form field.
+
+In the end, we're left with a client-side and a server-side controller layer
+that operates without any knowledge of the fact that the client-side
+Turbo-powered.
+
+While the strategies demonstrated throughout this example each have their own
+sets of trade-offs, they each have the potential to outperform their
+lines-of-code-to-utility ratios.
