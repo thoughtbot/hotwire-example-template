@@ -1,7 +1,7 @@
 <section>
-  <h1>To-do (<%= tag.span @tasks.to_do.size, id: "to_do_size" %>)</h1>
+  <h1>To-do (<%= @tasks.to_do.size %>)</h1>
 
-  <ol id="to_do_tasks">
+  <ol>
     <%= render collection: @tasks.to_do, partial: "tasks/task" %>
   </ol>
 
@@ -12,9 +12,9 @@
 </section>
 
 <section>
-  <h1>Done (<%= tag.span @tasks.done.size, id: "done_size" %>)</h1>
+  <h1>Done (<%= @tasks.done.size %>)</h1>
 
-  <ol id="done_tasks">
+  <ol>
     <%= render collection: @tasks.done, partial: "tasks/task" %>
   </ol>
 </section>
