@@ -45,4 +45,37 @@ class TasksTest < ApplicationSystemTestCase
 
     within_section("To-do (1)") { assert_button "Finish up!" }
   end
+
+  test "preserves fields while marking a Task as done" do
+    task = Task.create! details: "Write a test!", done_at: 1.week.ago
+    preserved = "Not started yet!"
+
+    visit tasks_path
+    within_section("To-do (0)") { toggle_disclosure "Add task" }
+    within_disclosure("Add task") { fill_in "Details", with: preserved }
+    within_section("Done (1)") { click_on task.details }
+
+    assert_selector :section, "Done (0)"
+    within_section "To-do (1)" do
+      assert_field "Details", with: preserved
+      assert_button task.details
+    end
+  end
+
+  test "preserves scroll depth while marking a Task as done" do
+    *, task = Task.create! 1.upto(100).map { { details: "Task ##{_1}" } }
+
+    visit tasks_path
+    scroll_to find_button task.details
+
+    assert_no_changes -> { scroll_top } do
+      click_on task.details
+    end
+  end
+
+  def scroll_top
+    evaluate_script <<~JS, page
+      arguments[0].scrollTop
+    JS
+  end
 end

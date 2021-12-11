@@ -22,7 +22,10 @@ class TasksController < ApplicationController
 
     @task.update! task_params
 
-    redirect_to tasks_url
+    respond_to do |format|
+      format.html { redirect_to tasks_url }
+      format.turbo_stream
+    end
   end
 
   private

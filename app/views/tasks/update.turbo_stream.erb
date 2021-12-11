@@ -1,0 +1,8 @@
+<%= turbo_stream.remove dom_id(@task, :li) %>
+
+<%= turbo_stream.append @task.done ? "done_tasks" : "to_do_tasks" do %>
+  <%= render partial: "tasks/task", object: @task %>
+<% end %>
+
+<%= turbo_stream.update "to_do_size", Task.to_do.size %>
+<%= turbo_stream.update "done_size", Task.done.size %>

@@ -1,4 +1,4 @@
-<li>
+<li id="<%= dom_id task, :li %>">
   <turbo-frame id="<%= dom_id task %>">
     <%= form_with model: task, namespace: task.id, data: { turbo_frame: "_top" } do |form| %>
       <%= form.button :done, value: !task.done do %>
