@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html data-controller="scroll"
+<html data-controller="scroll disclosure"
       data-action="turbo:before-visit->scroll#cache
                    turbo:before-visit->scroll#invalidate
+                   turbo:before-visit->disclosure#invalidate
                    turbo:visit->scroll#preventVisitScroll
                    turbo:load->scroll#read">
   <head>

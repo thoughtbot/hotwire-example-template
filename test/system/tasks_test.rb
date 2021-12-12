@@ -12,7 +12,6 @@ class TasksTest < ApplicationSystemTestCase
     end
 
     within_section("To-do (1)") { assert_button details }
-    toggle_disclosure "Add task"
     within_disclosure("Add task") { assert_field "Details", with: "" }
   end
 

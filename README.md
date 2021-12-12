@@ -707,3 +707,117 @@ Streams at the cost of regressions in the preservation of other state like the
 expansion of disclosures and unsaved values in form fields:
 
 https://user-images.githubusercontent.com/2575027/148579729-2479f8c8-f668-4a8e-9cc3-1af0c242f555.mov
+
+## Preserving disclosure toggle state
+
+To preserve the toggle state of our document's [disclosure][] elements, we can
+deploy a similar caching strategy.
+
+To start, we'll add the `disclosure` controller alongside the other on the
+document's `<html>` element:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <!DOCTYPE html>
+-<html data-controller="scroll"
++<html data-controller="scroll disclosure"
+       data-action="turbo:before-visit->scroll#cache
+                    turbo:visit->scroll#preventVisitScroll
+                    turbo:load->scroll#read
+```
+
+Next, we'll mark each disclosure widget with the
+`[data-disclosure-target="details"]` attribute along with an `[id]` attribute
+with a unique value:
+
+```diff
+--- a/app/views/tasks/index.html.erb
++++ b/app/views/tasks/index.html.erb
+-  <details>
++  <details id="new_task_disclosure" data-disclosure-target="details">
+     <summary>Add task</summary>
+     <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy"></turbo-frame>
+   </details>
+```
+
+The `disclosure` controller's implementation will cache `<details>` elements'
+`[open]` state when the element is disconnected, and read from that cached state
+when an element with a matching `[id]` attribute is connected:
+
+```javascript
+// app/javascript/controllers/disclosure_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static get targets() { return [ "details" ] }
+  static get values() { return { state: Object } }
+
+  detailsTargetConnected(target) {
+    const { id } = target
+
+    if (id in this.stateValue) target.open = this.stateValue[id]
+  }
+
+  detailsTargetDisconnected({ id, open }) {
+    if (id) this.stateValue = { ...this.stateValue, [id]: open }
+  }
+}
+```
+
+Like the scroll depth caching we've already cover, we'll invalidate our
+disclosure cache whenever we navigate to a new URL path.
+
+We'll route `turbo:before-visit` events to the `disclosure#invalidate` action:
+
+```diff
+--- a/app/views/layouts/application.html.erb
++++ b/app/views/layouts/application.html.erb
+ <html data-controller="disclosure scroll"
+       data-action="turbo:before-visit->scroll#cache
+                    turbo:before-visit->scroll#invalidate
++                   turbo:before-visit->disclosure#invalidate
+                    turbo:visit->scroll#preventVisitScroll
+                    turbo:load->scroll#read">
+  <head>
+```
+
+The `invalidate(event: CustomEvent)` action compares the pathname of the URL
+proposed by the `turbo:before-visit` event with the current location's pathname.
+When they're different, we'll discard the cache:
+
+```diff
+--- a/app/javascript/controllers/disclosure_controller.js
++++ b/app/javascript/controllers/disclosure_controller.js
+   detailsTargetDisconnected({ id, open }) {
+     if (id) this.stateValue = { ...this.stateValue, [id]: open }
+   }
++
++  invalidate({ detail: { url } }) {
++    const { pathname } = new URL(url)
++
++    if (window.location.pathname != pathname) this.stateValue = {}
++  }
+}
+```
+
+What have we gained?
+---
+
+We're preserving our disclosure elements toggle state, but we're still losing
+the state of its contents, as well as our inline editing form field state
+
+https://user-images.githubusercontent.com/2575027/148580151-40a02572-c9d2-4f3f-a011-2146b3d8b33a.mov
+
+At what cost?
+---
+
+Once again, we've doubled-down on exchanging the precision of Turbo Stream
+operations for the breadth of a full-page navigation. Unfortunately, by
+including disclosure toggle state in our page-wide state cache, we've also
+doubled-down on the cost.
+
+With this change, we continue to incrementally recover the behavior we were able
+to achieve with Turbo Streams. Next on our list: unsaved changes in our page's
+form fields.

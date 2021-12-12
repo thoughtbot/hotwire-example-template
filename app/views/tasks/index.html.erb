@@ -5,7 +5,7 @@
     <%= render collection: @tasks.to_do, partial: "tasks/task" %>
   </ol>
 
-  <details>
+  <details id="new_task_disclosure" data-disclosure-target="details">
     <summary>Add task</summary>
     <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy"></turbo-frame>
   </details>
