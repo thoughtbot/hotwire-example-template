@@ -892,3 +892,97 @@ records are moved to the "done" column, their call to action `<button>` elements
 are stale and still render the "Done" text. Since the elements are permanent,
 their server-side state change from "to do" to "done" isn't reflected on the
 client-side.
+
+Like our other client-side caches, we'll need to develop an invalidation
+strategy that suits our needs. To do so, we'll introduce a `permanence` Stimulus
+controller with an `invalidate()` action and a `cache()` action:
+
+```javascript
+// app/javascript/controllers/permanence_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  cache() {
+    this.element.setAttribute("data-turbo-permanent", "")
+  }
+
+  invalidate() {
+    this.element.removeAttribute("data-turbo-permanent")
+  }
+}
+```
+
+We'll declare `[data-controller="permanence"]` alongside the
+`[data-turbo-permanent]` attribute on each `tasks/task` partial's
+`<turbo-frame>` element:
+
+```diff
+--- a/app/views/tasks/_task.html.erb
++++ b/app/views/tasks/_task.html.erb
+ <li>
+-  <turbo-frame id="<%= dom_id task %>" data-turbo-permanent>
++  <turbo-frame id="<%= dom_id task %>" data-turbo-permanent
++               data-controller="permanence">
+     <%= form_with model: task, namespace: task.id, data: { turbo_frame: "_top" } do |form| %>
+```
+
+Since each `<turbo-frame>` element's initial state is "permanence", we're
+responsible for managing _when_ the `[data-turbo-permanent]` becomes present or
+absent. We'll want the element to be temporary whenever a descendent `<form>`
+element is submitted. To handle that state change, we'll route
+[turbo:submit-start][] events to the `permanence#invalidate` action. Once the
+submission is complete and the subsequent `<turbo-frame>` navigation completes,
+we'll restore the element's permanence by routing [turbo:frame-render][] events
+to the `permanence#cache` action:
+
+```diff
+--- a/app/views/tasks/_task.html.erb
++++ b/app/views/tasks/_task.html.erb
+ <li>
+   <turbo-frame id="<%= dom_id task %>" data-turbo-permanent
+-               data-controller="permanence">
++               data-controller="permanence"
++               data-action="turbo:submit-start->permanence#invalidate
++                            turbo:frame-render->permanence#cache">
+     <%= form_with model: task, namespace: task.id, data: { turbo_frame: "_top" } do |form| %>
+```
+
+[turbo:submit-start]: https://turbo.hotwired.dev/reference/events
+[turbo:frame-render]: https://turbo.hotwired.dev/reference/events
+
+We'll make matching changes to the `<turbo-frame>` element rendered by the
+`tasks/index` template:
+
+```diff
+--- a/app/views/tasks/index.html.erb
++++ b/app/views/tasks/index.html.erb
+   <details id="new_task_disclosure" data-disclosure-target="details">
+     <summary>Add task</summary>
+-    <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy" data-turbo-permanent></turbo-frame>
++    <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy" data-turbo-permanent
++                 data-controller="permanence"
++                 data-action="turbo:submit-start->permanence#invalidate
++                              turbo:frame-render->permanence#cache"></turbo-frame>
+   </details>
+```
+
+With those changes in place, the state of the `Task` record being modified is
+up-to-date, while the states of unrelated `Task` records remain unchanged:
+
+https://user-images.githubusercontent.com/2575027/148581102-2db049cc-c25c-41e9-90e8-f19e81067e3c.mov
+
+What have we gained?
+---
+
+By selectively controlling an element's permanence, we can choose to preserve
+state when it suits us, and choose the parameters for refreshing the element's
+state from our server.
+
+At what cost?
+---
+
+Like other strategies, we're responsible for invalidating yet another cache.
+Unfortunately in this case, it's element-by-element. This can be an extremely
+powerful technique for situations that call for it, but can quickly become
+tedious and difficult to maintain.
