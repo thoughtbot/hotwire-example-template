@@ -821,3 +821,74 @@ doubled-down on the cost.
 With this change, we continue to incrementally recover the behavior we were able
 to achieve with Turbo Streams. Next on our list: unsaved changes in our page's
 form fields.
+
+## Preserving unsaved form field state
+
+Our application has three types of `<form>` element. They're responsible for:
+
+<ol type="a">
+  <li>creating a new `Task` record</li>
+  <li>marking a `Task` record as "Done" or "To do"</li>
+  <li>editing a `Task` record's details</li>
+</ol>
+
+The `tasks/new` template renders `<form>` elements of the _a_ variety, the
+`tasks/task` partial renders `<form>` elements of the _b_ variety, and the
+`tasks/edit` template renders `<form>` elements of the _c_ variety.
+
+All three are served to end-users nested within `<turbo-frame>` ancestors: _a_
+`<form>` elements from within the `<turbo-frame id="new_task">` element; _b_ and
+_c_ `<form>` elements from within `<turbo-frame id="<%= dom_id(task) %>">`
+elements.
+
+We didn't have to worry about preserving form field values when our server was
+responding to submissions with Turbo Stream operations. Each operation's changes
+were precise enough to leave other elements in their current state, undisturbed
+and unaffected.
+
+Since we've reverted our responses to rely on HTTP redirects, element state is
+discarded before each full-page navigation. Luckily, Turbo Drive has the ability
+to _preserve an element across page loads_ by marking it as [permanent][].
+
+[permanent]: https://turbo.hotwired.dev/handbook/building#persisting-elements-across-page-loads
+
+We can direct Turbo Drive to cherry-pick elements from page to page by marking
+them with the `[data-turbo-permanent]` attribute. When an element with a
+matching `[id]` attribute is present in the next page's document _and also_
+annotated with the `[data-turbo-permanent]` attribute, Turbo will replace the
+new element with the current element.
+
+To retain all three types of `<form>` elements' state from page to page, we'll
+mark each with `[data-turbo-permanent]`. First, within the `tasks/task` partial:
+
+```diff
+--- a/app/views/tasks/_task.html.erb
++++ b/app/views/tasks/_task.html.erb
+ <li>
+-  <turbo-frame id="<%= dom_id task %>">
++  <turbo-frame id="<%= dom_id task %>" data-turbo-permanent>
+     <%= form_with model: task, namespace: task.id, data: { turbo_frame: "_top" } do |form| %>
+```
+
+Then, within the `tasks/index` partial:
+
+```diff
+--- a/app/views/tasks/index.html.erb
++++ b/app/views/tasks/index.html.erb
+   <details id="new_task_disclosure" data-disclosure-target="details">
+     <summary>Add task</summary>
+-    <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy"></turbo-frame>
++    <turbo-frame id="new_task" src="<%= new_task_path %>" loading="lazy" data-turbo-permanent></turbo-frame>
+   </details>
+```
+
+After making those changes, temporary state like form field values are preserved
+when changing the "Done"-ness of other `Task` records:
+
+https://user-images.githubusercontent.com/2575027/148580727-705b47b6-7432-4449-903f-97591066093f.mov
+
+While watching the video snippet, you might have noticed that when `Task`
+records are moved to the "done" column, their call to action `<button>` elements
+are stale and still render the "Done" text. Since the elements are permanent,
+their server-side state change from "to do" to "done" isn't reflected on the
+client-side.

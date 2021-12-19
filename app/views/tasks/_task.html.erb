@@ -1,5 +1,5 @@
 <li>
-  <turbo-frame id="<%= dom_id task %>">
+  <turbo-frame id="<%= dom_id task %>" data-turbo-permanent>
     <%= form_with model: task, namespace: task.id, data: { turbo_frame: "_top" } do |form| %>
       <%= form.button :done, value: !task.done do %>
         <% if task.done %>

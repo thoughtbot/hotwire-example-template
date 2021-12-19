@@ -72,6 +72,19 @@ class TasksTest < ApplicationSystemTestCase
     end
   end
 
+  test "resets fields after submitting an edit to a Task" do
+    Task.create! details: "Old value"
+
+    visit tasks_path
+    within_section("To-do (1)") { click_on "Edit" }
+    fill_in("Details", with: "New value").then { click_on "Update Task" }
+
+    within_section "To-do (1)" do
+      assert_button "Done"
+      assert_no_field "Details"
+    end
+  end
+
   def scroll_top
     evaluate_script <<~JS, page
       arguments[0].scrollTop
