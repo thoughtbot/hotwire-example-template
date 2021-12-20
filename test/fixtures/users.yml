@@ -1,7 +1,19 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-one:
-  name: MyText
+alice:
+  name: Alice
 
-two:
-  name: MyText
+bob:
+  name: Bob
+
+charlie:
+  name: Charlie
+
+dan:
+  name: Dan
+
+eve:
+  name: Eve
+
+faythe:
+  name: Faythe
