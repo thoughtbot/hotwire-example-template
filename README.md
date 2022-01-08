@@ -347,3 +347,201 @@ basis.
 [formmethod]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formmethod
 [formaction]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formaction
 [HTTP GET]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET
+
+## Dynamic form fields with JavaScript
+
+We've reached the limits of what's possible without relying on JavaScript. There
+are still opportunities for more incremental enhancements to the experience.
+Let's toggle the "Access" `<fieldset>` element's `[disabled]` attribute entirely
+on the client-side, without any communication with the server.
+
+To ensure continued support for our JavaScript-free baseline, so we'll nest the
+`<button formmethod="get">` within a [`<noscript>` element][noscript].
+Descendants of `<noscript>` elements are present when JavaScript is unavailable
+to the browser, and ignored otherwise:
+
+[noscript]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/noscript
+
+```diff
+--- a/app/views/documents/new.html.erb
++++ b/app/views/documents/new.html.erb
+       <%= form.collection_radio_buttons :access, Document.accesses.keys, :to_s, :humanize do |builder| %>
+         <span>
+           <%= builder.radio_button %>
+           <%= builder.label %>
+         </span>
+       <% end %>
+
++      <noscript>
+         <button formmethod="get" formaction="<%= new_document_path %>">Select access</button>
++      </noscript>
+     <% end %>
+```
+
+To manage our form's JavaScript behavior, we'll declare a [Stimulus
+Controller][]. The `fields` token serves are our controller's [identifier][].
+We'll modify our `<form>` element so that it declares `fields` token within a
+`[data-controller]` attribute:
+
+[Stimulus Controller]: https://stimulus.hotwired.dev/handbook/hello-stimulus#controllers-bring-html-to-life
+[identifier]: https://stimulus.hotwired.dev/reference/controllers#identifiers
+
+```diff
+--- a/app/views/documents/new.html.erb
++++ b/app/views/documents/new.html.erb
+-  <%= form_with model: @document do |form| %>
++  <%= form_with model: @document, data: { controller: "fields" } do |form| %>
+     <%= render partial: "errors", object: @document.errors %>
+
+     <%= field_set_tag "Access" do %>
+```
+
+We'll route [input][] events dispatched by our `<input type="radio"`> elements
+to our `fields` controller so that we can respond to changes in selection. We'll
+render each element with a `[data-action]` attribute that encoding the
+`input->fields#enable"` token:
+
+```diff
+--- a/app/views/documents/new.html.erb
++++ b/app/views/documents/new.html.erb
+     <%= field_set_tag "Access" do %>
+       <%= form.collection_radio_buttons :access, Document.accesses.keys, :to_s, :humanize do |builder| %>
+         <span>
+-          <%= builder.radio_button %>
++          <%= builder.radio_button aria: { controls: form.field_id(:access, builder.value, :fieldset) },
++                                   data: { action: "input->fields#enable" } %>
+           <%= builder.label %>
+         </span>
+       <% end %>
+     <% end %>
+```
+
+Stimulus treats `[data-action]` attributes as [Action descriptors][] that
+instruct Controllers on how to respond to events that dispatched throughout the
+document. The matching `fields#enable` implementation declared in the controller
+controls the form's `<fieldset>` elements.
+
+First, our controller loops through the form's `<fieldset>` elements, marking
+any element with a `[name]` attribute that matches the `<input type="radio">`
+element's `[name]` as [disabled][fieldset-disabled]. We're relying on the
+[`field_name`][field_name] view helper to consistently generate matching
+`[name]` attributes.
+
+Then, the controller reads the changed `<input type="radio">` element's [name][]
+and [aria-controls][] attributes. If it finds a `<fieldset>` element whose
+`[id]` attribute is referenced by the `<input type="radio">` element's
+`[aria-controls]` attribute, the controller removes the `[disabled]` attribute.
+We're relying on the [`field_id`][field_id] view helper to consistently generate
+matching `[id]` and `[aria-controls]` attributes.
+
+[field_name]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/FormBuilder.html#method-i-field_name
+[field_id]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/FormBuilder.html#method-i-field_id
+[input]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/input_event
+[Action descriptors]: https://stimulus.hotwired.dev/reference/actions
+[name]:https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#attr-name
+[aria-controls]: https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-controls
+
+```javascript
+// app/javascript/controllers/fields_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  enable({ target }) {
+    const elements = Array.from(this.element.elements)
+    const selectedElements = [ target ]
+
+    for (const element of elements.filter(element => element.name == target.name)) {
+      if (element instanceof HTMLFieldSetElement) element.disabled = true
+    }
+
+    for (const element of controlledElements(...selectedElements)) {
+      if (element instanceof HTMLFieldSetElement) element.disabled = false
+    }
+  }
+}
+
+function controlledElements(...selectedElements) {
+  return selectedElements.flatMap(selectedElement =>
+    getElementsByTokens(selectedElement.getAttribute("aria-controls"))
+  )
+}
+
+function getElementsByTokens(tokens) {
+  const ids = (tokens ?? "").split(/\s+/)
+
+  return ids.map(id => document.getElementById(id))
+}
+```
+
+We'll update the `app/views/documents/new.html.erb` template to encode the
+`<fieldset>` element's `[id]` and `[name]` attributes.
+
+```diff
+--- a/app/views/documents/new.html.erb
++++ b/app/views/documents/new.html.erb
+-    <%= field_set_tag "Passcode protect", disabled: !@document.passcode_protect?, class: "disabled:hidden" do %>
++    <%= field_set_tag "Passcode protect", disabled: !@document.passcode_protect?, class: "disabled:hidden",
++                                id: form.field_id(:access, :passcode_protected, :fieldset),
++                                name: form.field_name(:access) do %>
+       <%= form.label :passcode %>
+       <%= form.text_field :passcode %>
+     <% end %>
+```
+
+Finally, we'll opt-out of autocompletion. Without explicitly opting out of
+autocompletion, browsers could attempt to optimize the experience by restoring
+state from a previous visit. Those state restorations don't dispatch events in
+the document in the same way as user-initiated selections would. For the sake of
+consistency, render each `<input type="radio">` element with
+[autocomplete="off"][]:
+
+```diff
+--- a/app/views/documents/new.html.erb
++++ b/app/views/documents/new.html.erb
+     <%= field_set_tag "Access" do %>
+       <%= form.collection_radio_buttons :access, Document.accesses.keys, :to_s, :humanize do |builder| %>
+         <span>
+-          <%= builder.radio_button aria: { controls: form.field_id(:access, builder.value, :fieldset) },
++          <%= builder.radio_button autocomplete: "off",
++                                   aria: { controls: form.field_id(:access, builder.value, :fieldset) },
+                                    data: { action: "input->fields#enable" } %>
+           <%= builder.label %>
+         </span>
+       <% end %>
+       <button formmethod="get" formaction="<%= new_document_path %>">Select access</button>
+     <% end %>
+```
+
+[autocomplete="off"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete#values
+
+https://user-images.githubusercontent.com/2575027/150658649-45b9aa1d-fe28-4a71-8772-0fb9c4502640.mov
+
+We've made several improvements along the way, and have achieved our
+interactivity goals. Let's acknowledge the techniques that _weren't necessary_
+to include in our implementation:
+
+* We never render within our JavaScript code (for example, with [`.jsx`
+  templates][jsx]).
+* We don't connect elements to or disconnect elements from the document.
+* We don't translate changes made to the "passcode" field into an in-memory data
+  store (for example, storing [instance state][] or a [global state
+container][redux]).
+
+[jsx]: https://reactjs.org/docs/introducing-jsx.html
+[instance state]: https://reactjs.org/docs/state-and-lifecycle.html#adding-local-state-to-a-class
+[redux]: https://redux.js.org
+
+In fact, we never serialize to or deserialize from <abbr title="JavaScript
+Object Notation">JSON</abbr> at all. Most client-rendered applications generate
+their HTML from server-sourced data. Sometimes, that data is already encoded
+into HTML; sometimes it's encoded into JSON and stored in-memory in a bespoke
+data structure with an application-specific schema.
+
+By relying on the document to serve as our storage our server-rendered
+application avoids storing stateful data entirely. The document stores state in
+elements' attributes and content. The structure of the data is flexible, but is
+ultimately bound by the limitations outlined in the [HTML Specification][]. Our
+application treats the document as its single source of truth.
+
+[HTML Specification]: https://dev.w3.org/html5/spec-LC/

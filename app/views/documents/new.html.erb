@@ -1,20 +1,26 @@
 <section class="w-full max-w-lg">
   <h1>New document</h1>
 
-  <%= form_with model: @document do |form| %>
+  <%= form_with model: @document, data: { controller: "fields" } do |form| %>
     <%= render partial: "errors", object: @document.errors %>
 
     <%= field_set_tag "Access" do %>
       <%= form.collection_radio_buttons :access, Document.accesses.keys, :to_s, :humanize do |builder| %>
         <span>
-          <%= builder.radio_button autocomplete: "off" %>
+          <%= builder.radio_button autocomplete: "off",
+                                   aria: { controls: form.field_id(:access, builder.value, :fieldset) },
+                                   data: { action: "input->fields#enable" } %>
           <%= builder.label %>
         </span>
       <% end %>
-      <button formmethod="get" formaction="<%= new_document_path %>">Select access</button>
+      <noscript>
+        <button formmethod="get" formaction="<%= new_document_path %>">Select access</button>
+      </noscript>
     <% end %>
 
-    <%= field_set_tag "Passcode protect", disabled: !@document.passcode_protect?, class: "disabled:hidden" do %>
+    <%= field_set_tag "Passcode protect", disabled: !@document.passcode_protect?, class: "disabled:hidden",
+                                id: form.field_id(:access, :passcode_protect, :fieldset),
+                                name: form.field_name(:access) do %>
       <%= form.label :passcode %>
       <%= form.text_field :passcode %>
     <% end %>
