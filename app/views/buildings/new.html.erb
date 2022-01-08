@@ -1,25 +1,33 @@
 <section class="w-full max-w-lg">
   <h1>New building</h1>
 
-  <%= form_with model: @building do |form| %>
+  <%= form_with model: @building, data: { controller: "fields" } do |form| %>
     <%= render partial: "errors", object: @building.errors %>
 
     <%= field_set_tag "Describe the building" do %>
       <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
         <span>
-          <%= builder.radio_button autocomplete: "off" %>
+          <%= builder.radio_button autocomplete: "off",
+                                   aria: { controls: form.field_id(:building_type, builder.value, :fieldset) },
+                                   data: { action: "input->fields#enable" } %>
           <%= builder.label %>
         </span>
       <% end %>
-      <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
+      <noscript>
+        <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
+      </noscript>
     <% end %>
 
-    <%= field_set_tag "Leased", disabled: !@building.leased?, class: "disabled:hidden" do %>
+    <%= field_set_tag "Leased", disabled: !@building.leased?, class: "disabled:hidden",
+                                id: form.field_id(:building_type, :leased, :fieldset),
+                                name: form.field_name(:building_type) do %>
       <%= form.label :management_phone_number %>
       <%= form.telephone_field :management_phone_number %>
     <% end %>
 
-    <%= field_set_tag "Other", disabled: !@building.other?, class: "disabled:hidden" do %>
+    <%= field_set_tag "Other", disabled: !@building.other?, class: "disabled:hidden",
+                               id: form.field_id(:building_type, :other, :fieldset),
+                               name: form.field_name(:building_type) do %>
       <%= form.label :building_type_description %>
       <%= form.text_field :building_type_description %>
     <% end %>

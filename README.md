@@ -266,15 +266,15 @@ refresh the page's "State" options:
 ```
 
 The `<button>` element's `[formmethod="get"]` attribute directs the `<form>` to
-submit as an [HTTP GET][] request and the `[formaction="/buildings/new"]`
-attribute directs the `<Form>` to submit to the `/buildings/new` path. This
-verb-path pairing might seem familiar: it's the same request our browser will
-make when we visit the current page.
+_submit as_ an [HTTP GET][] request and `[formaction="/buildings/new"]` directs
+the `<form>` to _submit to_ the `/buildings/new` path. This pairing of HTTP verb
+and path might seem familiar: it's the same pairing of HTTP verb and path that
+our browser uses to navigate to the form's page. Submitting `<form>` as a `GET`
+request encodes all of its fields' values into [URL parameters][].
 
-Submitting `<form>` as a `GET` request will encode all of the fields' values
-into [URL parameters][]. We can read those values in our `buildings#new` action
-whenever they're provided, and use them when rendering the `<form>` element and
-its fields:
+We'll change the `BuildingsController#building_params` method to be capable of
+reading those values whenever they're available and using them to construct the
+`BuildingsController#new` action's `Building` record instance:
 
 ```diff
 --- a/app/controllers/buildings_controller.rb
@@ -308,9 +308,11 @@ its fields:
 
 https://user-images.githubusercontent.com/2575027/148697350-1051ef05-0671-4c80-b120-88b37d6bfd46.mov
 
-It's worth noting that there are countries that don't have "State" options (like
-Vatican City), so we'll also want to account for that case in our
-`buildings/new` template:
+By supporting Countries other than the United States, our form is responsible
+for omitting the "State" options whenever the Country doesn't have States (for
+example, the British Virgin Islands or Vatican City). We'll add a conditional to
+the `buildings/new` template so that the form only includes the `<select>` when
+necessary:
 
 ```diff
 --- a/app/views/buildings/new.html.erb
@@ -328,7 +330,8 @@ Vatican City), so we'll also want to account for that case in our
 
 https://user-images.githubusercontent.com/2575027/148697400-3668ed1d-f2b1-4923-b8ca-3558650eb517.mov
 
-Submitting the form's values as query parameters comes with two caveats:
+It's worth noting that submitting form values as query parameters comes with two
+caveats:
 
 1.  Any selected `<input type="file">` values will be discarded
 
@@ -345,7 +348,10 @@ Submitting the form's values as query parameters comes with two caveats:
     Unfortunately, in practice, [conventional wisdom][] suggests that URLs over
     2,000 characters are risky.
 
-In the case of our simple example `<form>`, neither points pose any risk.
+In the case of our example `<form>`, neither points pose significant risk. Forms
+that have more fields than ours, or collect fields with the potential to exceed
+the 2,000 character limit would benefit from an different submission mechanism.
+More on that later!
 
 [HTTP specification]: https://tools.ietf.org/html/rfc2616#section-3.2.1
 [conventional wisdom]: https://stackoverflow.com/a/417184
@@ -361,11 +367,14 @@ the optional `<input>` elements in their corresponding `<fieldset>` element pose
 a similar opportunity. How might we conditionally present (and require!) those
 fields based on the current `<input type="radio">` selection?
 
-First, to control whether or not the values are submitted to the server, we can
-conditionally render them with the [disabled][fieldset-disabled] attribute.
+We can use the `<fieldset>` element's [disabled][fieldset-disabled] attribute to
+control whether or not its descendant fields are encoded into the request and
+transmitted to the server when the `<form>` is submitted.
 
-We can base the presence or absence of the attribute on the selected value
-(which is read from a URL parameter or defaults to "Owned"):
+The `[disabled]` attribute is a [boolean attribute][], so its presence alone is
+enough to omit the element and its descendants. We'll base the presence or
+absence on whether or not the `<fieldset>` corresponds to the currently selected
+"building type" (i.e. "owned", "leased", and "other"):
 
 ```diff
 --- a/app/views/buildings/new.html.erb
@@ -383,8 +392,10 @@ We can base the presence or absence of the attribute on the selected value
      <% end %>
 ```
 
-Next, we can control whether or not the `<fieldset>` element is visible based on
-whether or not it matches the [:disabled][] pseudo-class:
+Encoding the `[disabled]` attribute into the HTML affords an opportunity to
+apply specific styles to the `<fieldset>` when it matches the [:disabled][]
+pseudo-class. For example, when the `<fieldset>` is disabled, apply the
+[display: none][] rule:
 
 ```diff
 --- a/app/views/buildings/new.html.erb
@@ -445,5 +456,166 @@ server-rendered selection:
 ```
 
 [fieldset-disabled]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/fieldset#attr-disabled
+[boolean attribute]: https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes#boolean_attributes
 [:disabled]: https://developer.mozilla.org/en-US/docs/Web/CSS/:disabled
+[display: none]: https://developer.mozilla.org/en-US/docs/Web/CSS/display#box
 [autocomplete="off"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete#values
+
+### Controlling local data with JavaScript
+
+Now that we've established a baseline foundation of JavaScript-free
+improvements, there are opportunities to [progressively enhance][] those
+experience. In the case of our `<input type"radio">` collection, we can toggle
+the visibility of their corresponding `<fieldset>` elements, and so that the
+end-user choices are reflected locally without additional form submissions to
+the server.
+
+To preserve our JavaScript-free behavior, we'll nest the `<button
+formmethod="get">` in a [`<noscript>` element][noscript] so that it's present
+with JavaScript is disabled and absent otherwise:
+
+[noscript]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/noscript
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Describe the building" do %>
+       <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
+         <span>
+           <%= builder.radio_button autocomplete: "off" %>
+           <%= builder.label %>
+         </span>
+       <% end %>
++      <noscript>
+         <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
++      </noscript>
+     <% end %>
+```
+
+Next, we'll create our application's first [Stimulus Controller][]. We'll modify
+our `<form>` element to declare the `[data-controller="fields"]` attribute. The
+`fields` token corresponds to our new controller's [identifier][]:
+
+[progressively enhance]: https://developer.mozilla.org/en-US/docs/Glossary/Progressive_Enhancement
+[Stimulus Controller]: https://stimulus.hotwired.dev/handbook/hello-stimulus#controllers-bring-html-to-life
+[identifier]: https://stimulus.hotwired.dev/reference/controllers#identifiers
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+ <section class="w-full max-w-lg">
+   <h1>New building</h1>
+
+-  <%= form_with model: @building do |form| %>
++  <%= form_with model: @building, data: { controller: "fields" } do |form| %>
+     <%= render partial: "errors", object: @building.errors %>
+
+     <%= field_set_tag "Describe the building" do %>
+```
+
+To listen for changes in selection, we'll route [input][] events to our `fields`
+controller by annotating each `<input type="radio">` element with the
+`[data-action="input->fields#enable"]` attribute:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+       <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
+         <span>
+-          <%= builder.radio_button autocomplete: "off" %>
++          <%= builder.radio_button autocomplete: "off",
++                                   data: { action: "input->fields#enable" } %>
+           <%= builder.label %>
+         </span>
+       <% end %>
+```
+
+The `[data-action]` attribute's value is a [Stimulus Action][] descriptor, which
+instructs Stimulus on how to respond to `input` events that fire within the
+document.
+
+[input]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/input_event
+[Stimulus Action]: https://stimulus.hotwired.dev/reference/actions
+
+The `fields#enable` implementation reads the `<input type="radio">` element's
+[name][] and [aria-controls][] attributes and finds `<fieldset>` elements with
+corresponding attributes. We'll mark each `<fieldset>` with the
+[disabled][fieldset-disabled], then remove the attribute for the `<fieldset>`
+whose `[name]` matches the `<input type="radio">` element's `[name]`, and whose
+`[id]` matches the `<input type="radio">` element's `[aria-controls]`:
+
+[name]:https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#attr-name
+[aria-controls]: https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-controls
+
+```javascript
+// app/javascript/controllers/fields_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  enable({ target }) {
+    const elements = Array.from(this.element.elements)
+    const selectedElements = [ target ]
+
+    for (const element of elements.filter(element => element.name == target.name)) {
+      if (element instanceof HTMLFieldSetElement) element.disabled = true
+    }
+
+    for (const element of controlledElements(...selectedElements)) {
+      if (element instanceof HTMLFieldSetElement) element.disabled = false
+    }
+  }
+}
+
+function controlledElements(...selectedElements) {
+  return selectedElements.flatMap(selectedElement =>
+    getElementsByTokens(selectedElement.getAttribute("aria-controls"))
+  )
+}
+
+function getElementsByTokens(tokens) {
+  const ids = (tokens ?? "").split(/\s+/)
+
+  return ids.map(id => document.getElementById(id))
+}
+```
+
+To ensure the relationship between the `<input type="radio">` elements and their
+corresponding `<fieldset>` elements, we'll update our `buildings/new` template
+to encode those values during rendering:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Describe the building" do %>
+       <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
+         <span>
+           <%= builder.radio_button autocomplete: "off",
++                                   aria: { controls: form.field_id(:building_type, builder.value, :fieldset) },
+                                    data: { action: "input->fields#enable" } %>
+           <%= builder.label %>
+         </span>
+       <% end %>
+       <noscript>
+         <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
+       </noscript>
+     <% end %>
+
+-    <%= field_set_tag "Leased", disabled: !@building.leased?, class: "disabled:hidden" do %>
++    <%= field_set_tag "Leased", disabled: !@building.leased?, class: "disabled:hidden",
++                                id: form.field_id(:building_type, :leased, :fieldset),
++                                name: form.field_name(:building_type) do %>
+       <%= form.label :management_phone_number %>
+       <%= form.telephone_field :management_phone_number %>
+     <% end %>
+
+-    <%= field_set_tag "Other", disabled: !@building.other?, class: "disabled:hidden" do %>
++    <%= field_set_tag "Other", disabled: !@building.other?, class: "disabled:hidden",
++                               id: form.field_id(:building_type, :other, :fieldset),
++                               name: form.field_name(:building_type) do %>
+       <%= form.label :building_type_description %>
+       <%= form.text_field :building_type_description %>
+     <% end %>
+```
+
+https://user-images.githubusercontent.com/2575027/148697502-24076160-603c-4c52-ad6b-aa8163def4f9.mov
