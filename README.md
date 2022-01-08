@@ -564,3 +564,95 @@ With those changes in place, our form submission initiates a `GET
 /addresses/new` request whenever the "Country" selection changes:
 
 https://user-images.githubusercontent.com/2575027/151675721-807df2f2-d163-48ce-a072-74cf8222f8ac.mov
+
+## Refreshing fragments of content
+
+While we've implemented automatic "Country" and "State" synchronization, there
+are still some quirks to address.
+
+For example, because the `<form>` submission triggers a full-page navigation,
+our application discards any client-side state like which element has focus, or
+how far the page has scrolled. Ideally, changing the selected "Country" would
+fetch fresh "State" options in a way that didn't affect the rest of the
+client-side context.
+
+What we need is a mechanism that fetches content, then renders it within a
+_fragment_ of the page.
+
+### Refreshing content with Turbo Frames
+
+The `<turbo-frame>` custom element has been one of the most celebrated
+primitives introduced during Turbo's evolution from [Turbolinks][]. [Turbo
+Frames][] provide an opportunity to [decompose][] pages into self-contained
+fragments.
+
+Descendant `<a>` or `<form>` elements drive a [`<turbo-frame>`][turbo-frame]
+ancestor similar to how the would navigate an [`<iframe>`][iframe] ancestor.
+Also like `<iframe>` elements, `<a>` or `<form>` elements elsewhere in the
+document are able to drive a `<turbo-frame>` by [targeting][frame-target] it
+through the `[data-turbo-frame]` attribute.
+
+During a frame's navigation, it issues an HTTP `GET` request based on the path
+or URL declared by its `[src]` attribute. The request encodes an [`Accept:
+text/html, application/xhtml+xml`][Accept] HTTP header, and expects an HTML
+document in its response. When the frame receives a response, it scans the new
+document for a `<turbo-frame>` element that declares an [`[id]`][id] attribute
+matching its own `[id]`. When a matching frame is found, the element replaces
+the matching frame's contents, and uses the extracted fragment to
+replace its own contents. The rest of the response is discarded.
+
+Throughout the frame's navigation, the browser retains any client-side context
+outside of the `<turbo-frame>` element, like element focus or scroll depth.
+We'll nest the "State" `<select>` element within a Turbo Frame, and drive it
+based on changes to the "Country" `<select>` element.
+
+First, we'll wrap the "State" fields in a `<turbo-frame>` element with an `[id]`
+attribute generated with the [`field_id`][field_id] view helper:
+
+[Turbolinks]: https://github.com/turbolinks/turbolinks/tree/v5.2.0
+[turbo-frame]: https://turbo.hotwired.dev/reference/frames#basic-frame
+[Turbo Frames]: https://turbo.hotwired.dev/handbook/frames
+[iframe]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe
+[decompose]: https://turbo.hotwired.dev/handbook/introduction#turbo-frames%3A-decompose-complex-pages
+[frame-target]: https://turbo.hotwired.dev/handbook/frames#targeting-navigation-into-or-out-of-a-frame
+[Accept]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept
+[id]: https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id
+[field_id]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/FormBuilder.html#method-i-field_id
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
++    <turbo-frame id="<%= form.field_id(:state, :turbo_frame) %>" class="contents">
+       <% if @address.states.any? %>
+         <%= form.label :state %>
+         <%= form.select :state, @address.states.invert %>
+       <% end %>
++    </turbo-frame>
+```
+
+Next, we'll change the hidden `<button>` element to declare a
+`[data-turbo-frame]` attribute. Inspired by the [formtarget][] attribute, the
+`[data-turbo-frame]` attribute enables `<button>` and `<input type="submit">`
+elements to drive targetted `<turbo-frame>` elements, even if they aren't
+descendants of the element. To ensure that the value matches the `<turbo-frame>`
+element's `[id]`, we'll rely on the same `field_id` view helper to generate the
+`[data-turbo-frame]` attribute:
+
+[data-turbo-frame]: https://turbo.hotwired.dev/handbook/frames#targeting-navigation-into-or-out-of-a-frame
+[formtarget]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formtarget
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+       <button formmethod="get" formaction="<%= new_address_path %>" hidden
+-              data-element-target="click"></button>
++              data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></button>
+```
+
+Programmatic clicks to the `<button>` still submit `GET /documents/new`
+requests, but those requests now drive the `<turbo-frame>` instead of the entire
+page. By scoping the navigation to the `<turbo-frame>`, the browser maintains
+the rest of the client-side state. For example, the "Country" `<select>` element
+_retains_ focus throughout the interaction:
+
+https://user-images.githubusercontent.com/2575027/151675812-c7364d49-a250-4247-a625-922b4c3bd708.mov
