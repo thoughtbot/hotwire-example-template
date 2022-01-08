@@ -52,6 +52,20 @@ ActiveRecord::Schema[7.0].define(version: 2022_02_13_162643) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "buildings", force: :cascade do |t|
+    t.integer "building_type", default: 0, null: false
+    t.string "line_1", null: false
+    t.string "line_2"
+    t.string "city", null: false
+    t.string "state"
+    t.string "postal_code", null: false
+    t.string "country", default: "US", null: false
+    t.string "management_phone_number"
+    t.text "building_type_description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
 end

@@ -7,3 +7,12 @@ end
 Capybara.configure do |config|
   config.default_normalize_ws = true
 end
+
+Capybara.modify_selector :alert do
+  xpath do |name, **|
+    XPath.descendant[
+      XPath.descendant[XPath.attr(:role) == "alert"] |
+      XPath.descendant[:output]
+    ][XPath.string.n.is(name.to_s)]
+  end
+end

@@ -1,0 +1,45 @@
+<section class="w-full max-w-lg">
+  <h1>New building</h1>
+
+  <%= form_with model: @building do |form| %>
+    <%= render partial: "errors", object: @building.errors %>
+
+    <%= field_set_tag "Describe the building" do %>
+      <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
+        <span>
+          <%= builder.radio_button %>
+          <%= builder.label %>
+        </span>
+      <% end %>
+    <% end %>
+
+    <%= field_set_tag "Leased" do %>
+      <%= form.label :management_phone_number %>
+      <%= form.telephone_field :management_phone_number %>
+    <% end %>
+
+    <%= field_set_tag "Other" do %>
+      <%= form.label :building_type_description %>
+      <%= form.text_field :building_type_description %>
+    <% end %>
+
+    <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
+      <%= form.label :line_1 %>
+      <%= form.text_field :line_1 %>
+
+      <%= form.label :line_2 %>
+      <%= form.text_field :line_2 %>
+
+      <%= form.label :city %>
+      <%= form.text_field :city %>
+
+      <%= form.label :state %>
+      <%= form.select :state, @building.states.invert %>
+
+      <%= form.label :postal_code %>
+      <%= form.text_field :postal_code %>
+    <% end %>
+
+    <%= form.button %>
+  <% end %>
+</section>

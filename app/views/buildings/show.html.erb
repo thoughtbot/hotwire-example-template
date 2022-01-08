@@ -1,0 +1,9 @@
+<section class="w-full max-w-lg">
+  <h1><%= @building.line_1 %> <%= @building.line_2 %> (<%= @building.other? ? @building.building_type_description : @building.building_type.humanize %>)</h1>
+
+  <p><%= @building.city %>, <%= @building.state_name %> <%= @building.postal_code %>, <%= @building.country_name %></p>
+
+  <% if @building.leased? %>
+    <%= phone_to @building.management_phone_number, number_to_phone(@building.management_phone_number) %>
+  <% end %>
+</section>
