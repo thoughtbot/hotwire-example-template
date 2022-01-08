@@ -50,10 +50,10 @@ class AddressesTest < ApplicationSystemTestCase
     visit new_address_path
     within_section "New address" do
       fill_in "Line 1", with: "1384 Broadway"
-      select("Vatican City", from: "Country")
+      select("Vatican City", from: "Country").then { assert_select "Country", focused: true }
       assert_no_select "State"
 
-      select("Canada", from: "Country")
+      select("Canada", from: "Country").then { assert_select "Country", focused: true }
       assert_select "State", selected: "Alberta"
     end
 
