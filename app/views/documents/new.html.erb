@@ -1,0 +1,26 @@
+<section class="w-full max-w-lg">
+  <h1>New document</h1>
+
+  <%= form_with model: @document do |form| %>
+    <%= render partial: "errors", object: @document.errors %>
+
+    <%= field_set_tag "Access" do %>
+      <%= form.collection_radio_buttons :access, Document.accesses.keys, :to_s, :humanize do |builder| %>
+        <span>
+          <%= builder.radio_button %>
+          <%= builder.label %>
+        </span>
+      <% end %>
+    <% end %>
+
+    <%= field_set_tag "Passcode protected" do %>
+      <%= form.label :passcode %>
+      <%= form.text_field :passcode %>
+    <% end %>
+
+    <%= form.label :content %>
+    <%= form.rich_text_area :content %>
+
+    <%= form.button %>
+  <% end %>
+</section>

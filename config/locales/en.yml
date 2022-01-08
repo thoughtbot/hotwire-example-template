@@ -31,3 +31,8 @@
 
 en:
   hello: "Hello world"
+  activerecord:
+    attributes:
+      building:
+        building_type: "Type"
+        building_type_description: "Description"
