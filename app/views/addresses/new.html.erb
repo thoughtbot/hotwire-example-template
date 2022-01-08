@@ -1,0 +1,31 @@
+<section class="w-full max-w-lg">
+  <h1>New address</h1>
+
+  <%= render partial: "addresses/address", object: @address %>
+
+  <%= form_with model: @address, class: "flex flex-col gap-2" do |form| %>
+    <%= render partial: "errors", object: @address.errors %>
+
+    <fieldset class="contents" disabled>
+      <%= form.label :country %>
+      <%= form.select :country, @address.countries.invert %>
+    </fieldset>
+
+    <%= form.label :line_1 %>
+    <%= form.text_field :line_1 %>
+
+    <%= form.label :line_2 %>
+    <%= form.text_field :line_2 %>
+
+    <%= form.label :city %>
+    <%= form.text_field :city %>
+
+    <%= form.label :state %>
+    <%= form.select :state, @address.states.invert %>
+
+    <%= form.label :postal_code %>
+    <%= form.text_field :postal_code %>
+
+    <%= form.button %>
+  <% end %>
+</section>
