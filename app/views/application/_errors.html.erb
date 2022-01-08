@@ -1,0 +1,11 @@
+<% if errors.any? %>
+  <output class="text-red-500">
+    <h2><%= pluralize(errors.count, "error") %> prohibited this record from being saved:</h2>
+
+    <ul>
+      <% errors.each do |error| %>
+        <li><%= error.full_message %></li>
+      <% end %>
+    </ul>
+  </output>
+<% end %>
