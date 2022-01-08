@@ -813,3 +813,85 @@ initial client-side selection and the server-rendered selection:
 ```
 
 https://user-images.githubusercontent.com/2575027/148697670-29b8dde5-2ce4-40a7-943e-23cdb68b3dd5.mov
+
+## Fetching remote data with Turbo Frames
+
+While we've enhanced our JavaScript-free solution for maintaining
+synchronization between the "Country" and "State" `<select>` elements, there are
+still some quirks to improve.
+
+For example, because the `<form>` submission triggers a full-page navigation,
+our application will discard any client-side state like, which element has focus
+or how far down the page the end-user has scrolled. Ideally, a change to the
+"Country" `<select>` element's current option would fetch and replace an HTML
+fragment that _only_ contained the "State" `<select>` element, and left the rest
+of the page undisturbed.
+
+Lucky for us, [Turbo Frames][] are well suited for that purpose! Through the
+[`<turbo-frame>`][] custom element (and its [src][turbo-frame-src] attribute),
+our application can manage fragments of our document asynchronously.
+
+We can scope our "Country" `<select>`-driven requests the portion of our from that contains the "State" `<select>` and `<label>` elements.
+
+First, we'll wrap the "State" portion of the form in a
+[`<turbo-frame>`][turbo-frame] element, and assign it an `[id]` attribute that
+is unique across the document:
+
+[Turbo Frames]: https://turbo.hotwired.dev/handbook/frames
+[turbo-frame]: https://turbo.hotwired.dev/reference/frames#basic-frame
+[turbo-frame-src]: https://turbo.hotwired.dev/reference/frames#html-attributes
+[FrameElement]: https://turbo.hotwired.dev/reference/frames#properties
+[data-turbo-frame]: https://turbo.hotwired.dev/handbook/frames#targeting-navigation-into-or-out-of-a-frame
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+       <%= form.label :city %>
+       <%= form.text_field :city %>
+
++      <turbo-frame id="<%= form.field_id(:state, :turbo_frame) %>" class="contents">
+         <% if @building.states.any? %>
+           <%= form.label :state %>
+           <%= form.select :state, @building.states.invert %>
+         <% end %>
++      </turbo-frame>
+
+       <%= form.label :postal_code %>
+       <%= form.text_field :postal_code %>
+```
+
+There are several ways to navigate the frame. For example, if it better suits
+your use-case, you can retrieve the [FrameElement][] instance, and interact with
+the `[src]` property directly.
+
+Since we're already rendering an `<input type="submit">` element that
+declaratively encodes all the pertinent, concrete details of the submission (for
+example, the `[formmethod]` and `[formaction]` attributes), we'll rely on the
+fact that we're programmatically clicking the `<input type="submit">` element.
+
+Not only does the `<input type="submit">` encode _where_ and _how_ to make our
+submission, the browser's built-in form field encoding mechanisms to control
+_what_ to include in the submission.
+
+To target and drive the `<turbo-frame>` element, we'll render the `<input
+type="submit">` element with a [data-turbo-frame][] attribute that references
+the `<turbo-frame>` element's `[id]` attribute:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+         <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden
+-               data-element-target="click">
++               data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>">
+         <noscript>
+           <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
+         </noscript>
+```
+
+With those enhancements in place, changes to the "Country" `<select>` element
+refreshes the "State" `<select>` element's collection of options while
+retaining client-side state like which element is focused (in this case, the
+"Country" `<select>` _retains_ focus throughout), and how far down the page the
+user has scrolled:
+
+https://user-images.githubusercontent.com/2575027/148697719-3c524202-c1dd-4aa9-80d2-215a409d2fd3.mov

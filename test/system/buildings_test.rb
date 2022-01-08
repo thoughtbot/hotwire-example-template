@@ -123,12 +123,15 @@ class BuildingsTest < ApplicationSystemTestCase
   test "selecting a Country refreshs the State options" do
     visit new_building_path
     within_section "New building" do
+      fill_in "Line 1", with: "1384 Broadway"
       select("Vatican City", from: "Country")
       assert_no_select "State"
 
       select("Canada", from: "Country")
       assert_select "State", fieldset: "Address", selected: "Alberta"
     end
+
+    assert_field "Line 1", with: "1384 Broadway"
   end
 
   def within_section(*arguments, **options, &block)
