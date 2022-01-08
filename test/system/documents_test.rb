@@ -4,7 +4,7 @@ class DocumentsTest < ApplicationSystemTestCase
   test "saves a valid published Document" do
     visit new_document_path
     assert_no_changes -> { page.has_no_field? "Passcode", fieldset: "Passcode protect" } do
-      choose("Publish", fieldset: "Access")
+      select("Publish", from: "Access")
     end
     within :section, "New document" do
       fill_in_rich_text_area "Content", with: "Some publicly accessible content"
@@ -20,7 +20,7 @@ class DocumentsTest < ApplicationSystemTestCase
   test "saves a valid draft Document" do
     visit new_document_path
     assert_no_changes -> { page.has_no_field? "Passcode", fieldset: "Passcode protect" } do
-      choose("Draft", fieldset: "Access")
+      select("Draft", from: "Access")
     end
     within :section, "New document" do
       fill_in_rich_text_area "Content", with: "Some private, draft content"
@@ -36,7 +36,7 @@ class DocumentsTest < ApplicationSystemTestCase
   test "saves a valid Passcode protect Document" do
     visit new_document_path
     assert_changes -> { page.has_no_field? "Passcode", fieldset: "Passcode protect" } do
-      choose("Passcode protect", fieldset: "Access")
+      select("Passcode protect", from: "Access")
     end
     within :section, "New document" do
       fill_in "Passcode", with: "secretcode", fieldset: "Passcode protect"
@@ -52,7 +52,7 @@ class DocumentsTest < ApplicationSystemTestCase
 
   test "rejects an invalid published Document" do
     visit new_document_path
-    choose("Publish", fieldset: "Access")
+    select("Publish", from: "Access")
     within :section, "New document" do
       click_on "Create Document"
     end
@@ -64,7 +64,7 @@ class DocumentsTest < ApplicationSystemTestCase
 
   test "rejects an invalid draft Document" do
     visit new_document_path
-    choose("Draft", fieldset: "Access")
+    select("Draft", from: "Access")
     within :section, "New document" do
       click_on "Create Document"
     end
@@ -76,7 +76,7 @@ class DocumentsTest < ApplicationSystemTestCase
 
   test "rejects an invalid Passcode protect Document" do
     visit new_document_path
-    choose("Passcode protect", fieldset: "Access")
+    select("Passcode protect", from: "Access")
     within :section, "New document" do
       click_on "Create Document"
     end

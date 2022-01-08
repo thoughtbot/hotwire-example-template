@@ -3,7 +3,9 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   enable({ target }) {
     const elements = Array.from(this.element.elements)
-    const selectedElements = [ target ]
+    const selectedElements = "selectedOptions" in target ?
+      target.selectedOptions :
+      [ target ]
 
     for (const element of elements.filter(element => element.name == target.name)) {
       if (element instanceof HTMLFieldSetElement) element.disabled = true

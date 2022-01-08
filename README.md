@@ -517,31 +517,45 @@ consistency, render each `<input type="radio">` element with
 
 https://user-images.githubusercontent.com/2575027/150658649-45b9aa1d-fe28-4a71-8772-0fb9c4502640.mov
 
-We've made several improvements along the way, and have achieved our
-interactivity goals. Let's acknowledge the techniques that _weren't necessary_
-to include in our implementation:
+### Supporting other form fields
 
-* We never render within our JavaScript code (for example, with [`.jsx`
-  templates][jsx]).
-* We don't connect elements to or disconnect elements from the document.
-* We don't translate changes made to the "passcode" field into an in-memory data
-  store (for example, storing [instance state][] or a [global state
-container][redux]).
+While `<input type="radio">` elements are an appropriate choice for our set of
+three possible choices, it's worthwhile to consider what's necessary to handle a
+larger set of choices. Let's consider replacing our set of `<input
+type="radio">` buttons with a `<select>` with a list of `<option>` elements:
 
-[jsx]: https://reactjs.org/docs/introducing-jsx.html
-[instance state]: https://reactjs.org/docs/state-and-lifecycle.html#adding-local-state-to-a-class
-[redux]: https://redux.js.org
+```erb
+<%= field_set_tag do %>
+  <%= form.label :access %>
+  <%= form.select :access, [], {}, autocomplete: "off",
+                  data: { action: "change->fields#enable" } do %>
+    <% Document.accesses.keys.each do |value| %>
+      <%= tag.option value.humanize, value: value,
+                                     aria: { controls: form.field_id(:access, value, :fieldset) } %>
+    <% end %>
+  <% end %>
+<% end %>
+```
 
-In fact, we never serialize to or deserialize from <abbr title="JavaScript
-Object Notation">JSON</abbr> at all. Most client-rendered applications generate
-their HTML from server-sourced data. Sometimes, that data is already encoded
-into HTML; sometimes it's encoded into JSON and stored in-memory in a bespoke
-data structure with an application-specific schema.
+While this particular `<select>` element is limited to a single selected choice
+at a time, it's possible for other `<select>` elements to have [multiple
+selected options at once][select-multiple]. Let's change the `fields` controller
+to support that possibility:
 
-By relying on the document to serve as our storage our server-rendered
-application avoids storing stateful data entirely. The document stores state in
-elements' attributes and content. The structure of the data is flexible, but is
-ultimately bound by the limitations outlined in the [HTML Specification][]. Our
-application treats the document as its single source of truth.
+[select-multiple]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/select#attr-multiple
 
-[HTML Specification]: https://dev.w3.org/html5/spec-LC/
+```diff
+--- a/app/javascript/controllers/fields_controller.js
++++ b/app/javascript/controllers/fields_controller.js
+ export default class extends Controller {
+   enable({ target }) {
+-    const selectedElements = [ target ]
++    const selectedElements = "selectedOptions" in target ?
++      target.selectedOptions :
++      [ target ]
+
+     for (const field of this.element.elements.namedItem(target.name)) {
+       if (field instanceof HTMLFieldSetElement) field.disabled = true
+```
+
+https://user-images.githubusercontent.com/2575027/150658732-bb552dc2-4f25-4f26-b33b-ca539da6ac4b.mov

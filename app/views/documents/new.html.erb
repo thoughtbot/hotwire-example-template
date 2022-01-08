@@ -4,14 +4,14 @@
   <%= form_with model: @document, data: { controller: "fields" } do |form| %>
     <%= render partial: "errors", object: @document.errors %>
 
-    <%= field_set_tag "Access" do %>
-      <%= form.collection_radio_buttons :access, Document.accesses.keys, :to_s, :humanize do |builder| %>
-        <span>
-          <%= builder.radio_button autocomplete: "off",
-                                   aria: { controls: form.field_id(:access, builder.value, :fieldset) },
-                                   data: { action: "input->fields#enable" } %>
-          <%= builder.label %>
-        </span>
+    <%= field_set_tag do %>
+      <%= form.label :access %>
+      <%= form.select :access, [], {}, autocomplete: "off",
+                      data: { action: "change->fields#enable" } do %>
+        <% Document.accesses.keys.each do |value| %>
+          <%= tag.option value.humanize, value: value,
+                                        aria: { controls: form.field_id(:access, value, :fieldset) } %>
+        <% end %>
       <% end %>
       <noscript>
         <button formmethod="get" formaction="<%= new_document_path %>">Select access</button>
