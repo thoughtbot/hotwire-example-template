@@ -406,3 +406,161 @@ risk on a case by case basis.
 [URL parameters]: https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters
 [HTTP GET]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET
 [address-fallacies]: https://www.mjt.me.uk/posts/falsehoods-programmers-believe-about-addresses/
+
+## Refreshing content with JavaScript
+
+In the absence of JavaScript, requiring that end-users click a secondary
+`<button>` to fetch matching state options is effective. When JavaScript is
+available, it's tedious and has potential to confuse or surprise. It an
+interaction that begging to be [progressively enhanced][].
+
+Before we explore the JavaScript-powered options, let's preserve the behavior of
+our JavaScript-free version. We'll nest the "Select country" button within a
+[`<noscript>`][noscript] element so that it's present in the absence of
+JavaScript, and absent otherwise:
+
+[progressively enhanced]: https://developer.mozilla.org/en-US/docs/Glossary/Progressive_Enhancement
+[noscript]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/noscript
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+     <fieldset class="contents">
+       <%= form.label :country %>
+       <%= form.select :country, @address.countries.invert %>
+
++      <noscript>
+         <button formmethod="get" formaction="<%= new_address_path %>">Select country</button>
++      </noscript>
+     </fieldset>
+```
+
+In its place, we'll introduce another `<button>` element to serve a similar
+purpose. We'll render the `<button>` element `[formmethod]` and `[formaction]`
+attributes that match its predecessor, but we'll mark it with the [hidden][]
+attribute to visually hide it from the document:
+
+[hidden]: https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/hidden
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+     <fieldset class="contents">
+       <%= form.label :country %>
+       <%= form.select :country, @address.countries.invert %>
+
+       <noscript>
+         <button formmethod="get" formaction="<%= new_address_path %>">Select country</button>
+       </noscript>
++      <button formmethod="get" formaction="<%= new_address_path %>" hidden></button>
+    </fieldset>
+```
+
+While end-users won't be able to click the button, JavaScript will be able to
+click it programmatically whenever a [change][] event fires on the "Country"
+`<select>` element. The end result will be the same as before: a `GET
+/addresses/new` request.
+
+To interact with the `<button>`, we'll introduce our first [Stimulus
+Controller][]. We'll name our controller with the `element` [identifier][]:
+
+[Stimulus Controller]: https://stimulus.hotwired.dev/reference/controllers
+[identifier]: https://stimulus.hotwired.dev/reference/controllers#identifiers
+[change]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/change_event
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
++    <fieldset class="contents" data-controller="element">
+       <%= form.label :country %>
+       <%= form.select :country, @address.countries.invert %>
+
+       <noscript>
+         <button formmethod="get" formaction="<%= new_address_path %>">Select country</button>
+       </noscript>
+       <button formmethod="get" formaction="<%= new_address_path %>" hidden></button>
++    </fieldset>
+```
+
+Next, we'll mark the hidden `<button>` element with the
+`[data-element-target="click"]` attribute so that the `element` controller
+retains direct access to the element as a [target][]:
+
+[target]: https://stimulus.hotwired.dev/reference/targets
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+     <fieldset class="contents" data-controller="element">
+       <%= form.label :country %>
+       <%= form.select :country, @address.countries.invert %>
+
+       <noscript>
+         <button formmethod="get" formaction="<%= new_address_path %>">Select country</button>
+       </noscript>
+-      <button formmethod="get" formaction="<%= new_address_path %>" hidden>
++      <button formmethod="get" formaction="<%= new_address_path %>" hidden
++              data-element-target="click"></button>
+     </fieldset>
+```
+
+Then, we'll render the `<select>` element with an [Action descriptor][] to
+route `change` events dispatched by the `<select>` element to the
+`element#click` action:
+
+[Action descriptor]: https://stimulus.hotwired.dev/reference/actions
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+     <fieldset class="contents" data-controller="element">
+       <%= form.label :country %>
+-      <%= form.select :country, @address.countries.invert %>
++      <%= form.select :country, @address.countries.invert, {},
++                      data: { action: "change->element#click" } %>
+
+       <noscript>
+         <button formmethod="get" formaction="<%= new_address_path %>">Select country</button>
+       </noscript>
+       <button formmethod="get" formaction="<%= new_address_path %>" hidden>
+     </fieldset>
+```
+
+For the sake of consistency, render the `<select>` element with
+[autocomplete="off"][] to opt-out of autocompletion. Without explicitly opting
+out of autocompletion, browsers might automatically restore state from a
+previous visit to the page. Those state restorations don't dispatch events
+throughout the document in the same way as user-initiated selections would.:
+
+[autocomplete="off"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete#values
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+       <%= form.label :country %>
+-      <%= form.select :country, @address.countries.invert, {},
++      <%= form.select :country, @address.countries.invert, {}, autocomplete: "off",
+                       data: { action: "change->element#click" } %>
+```
+
+The responsibilities of the `element` controller's `click` action are extremely
+limited: click any elements marked as a "click" target.
+
+```javascript
+// app/javascript/controllers/element_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static targets = [ "click" ]
+
+  click() {
+    this.clickTargets.forEach(target => target.click())
+  }
+}
+```
+
+With those changes in place, our form submission initiates a `GET
+/addresses/new` request whenever the "Country" selection changes:
+
+https://user-images.githubusercontent.com/2575027/151675721-807df2f2-d163-48ce-a072-74cf8222f8ac.mov

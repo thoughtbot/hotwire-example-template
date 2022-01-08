@@ -6,11 +6,16 @@
   <%= form_with model: @address, class: "flex flex-col gap-2" do |form| %>
     <%= render partial: "errors", object: @address.errors %>
 
-    <fieldset class="contents">
+    <fieldset class="contents" data-controller="element">
       <%= form.label :country %>
-      <%= form.select :country, @address.countries.invert %>
+      <%= form.select :country, @address.countries.invert, {}, autocomplete: "off",
+                      data: { action: "change->element#click" } %>
 
-      <button formmethod="get" formaction="<%= new_address_path %>">Select country</button>
+      <noscript>
+        <button formmethod="get" formaction="<%= new_address_path %>">Select country</button>
+      </noscript>
+      <button formmethod="get" formaction="<%= new_address_path %>" hidden
+              data-element-target="click"></button>
     </fieldset>
 
     <%= form.label :line_1 %>
