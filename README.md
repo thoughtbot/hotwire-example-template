@@ -666,3 +666,150 @@ need to account for that possibility in the `fields` controller:
 ```
 
 https://user-images.githubusercontent.com/2575027/148697637-ea9512ae-0fee-4a7d-b0d2-065839f3b3b4.mov
+
+## Fetching remote data with JavaScript
+
+While it might be tempting to deploy this same strategy for our "Country" and
+"State" `<select>` element pairing, rendering all possible combinations of
+Country and State would be far too expensive:
+
+```ruby
+irb(main):001:0> country_codes = CS.countries.keys
+=>
+[:AD,
+...
+irb(main):002:0> country_codes.flat_map { |code| CS.states(code).keys }.count
+=> 3391
+```
+
+Instead, we can render a single pairing of Country and State values, then fetch
+a new pair when the `<select>` element's selected options change.
+
+A `<button formmethod="get">` element powers the original (JavaScript-free)
+version of State options fetching. End-users manually click the `<button>` to
+fetch new options. In cases where the visiting browsing environment has
+JavaScript disabled, we'll continue to support that behavior.
+
+To do so, we'll nest the `<button>` within a [`<noscript>` element][noscript] so
+that it's present with JavaScript enabled, but absent otherwise:
+
+[noscript]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/noscript
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
+       <%= form.label :country %>
+       <%= form.select :country, @building.countries.invert %>
++      <noscript>
+         <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
++      </noscript>
+
+       <%= form.label :line_1 %>
+       <%= form.text_field :line_1 %>
+```
+
+In it's place, we'll introduce a visually-hidden `<input type="submit">`
+counterpart that our application's JavaScript code will programmatically click
+on the end-user's behalf:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
+       <%= form.label :country %>
+       <%= form.select :country, @building.countries.invert %>
++
++      <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden>
+       <noscript>
+         <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
+       </noscript>
+```
+
+We'll introduce a Stimulus controller to monitor changes to the `<select>`
+element's selected options. Whenever a [change][] event fires on the `<select>`
+element, we'll programmatically click the `<input type="submit">`.
+
+To scope the event monitoring to this cluster of fields, we'll nest the
+`<label>`, `<select>`, and `<input type="submit">` elements within a `<div
+data-controller="element">` element. We'll declare the `<div>` to have
+[`display: contents`][contents] so that its descendants can continue to
+participate in the `<fieldset>` element's flexbox layout:
+
+[contents]: https://developer.mozilla.org/en-US/docs/Web/CSS/display#box
+[change]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/change_event
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
++      <div class="contents" data-controller="element">
+         <%= form.label :country %>
+         <%= form.select :country, @building.countries.invert %>
+
+         <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden>
+         <noscript>
+           <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
+         </noscript>
++      </div>
+```
+
+Next, we'll mark the `<input type="submit">` element with the
+`[data-element-target="click"]` attribute so that the `element` controller can
+access the element directly. We'll also route `change` events fired by the
+`<select>` element to the `element#click` action:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
+       <div class="contents" data-controller="element">
+         <%= form.label :country %>
+-        <%= form.select :country, @building.countries.invert %>
++        <%= form.select :country, @building.countries.invert, {},
++                        data: { action: "change->element#click" } %>
+
+-        <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden>
++        <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden
++               data-element-target="click">
+         <noscript>
+           <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
+         </noscript>
+       </div>
+```
+
+The `element` controller's implementation is minimal and extremely specific.
+Clicking its "click" targets is its one and only behavior:
+
+```javascript
+// app/javascript/controllers/element_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static get targets() { return [ "click" ] }
+
+  click() {
+    this.clickTargets.forEach(target => target.click())
+  }
+}
+```
+
+Similar to our `<input type="radio">` monitoring implmentation, it's important
+to render the `<select>` element with [autocomplete="off"][] so that
+browser-initiated optimizations don't introduce inconsistencies between the
+initial client-side selection and the server-rendered selection:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+         <%= form.label :country %>
+-        <%= form.select :country, @building.countries.invert, {},
++        <%= form.select :country, @building.countries.invert, {}, autocomplete: "off",
+                         data: { action: "change->element#click" } %>
+
+         <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden
+                data-element-target="click">
+```
+
+https://user-images.githubusercontent.com/2575027/148697670-29b8dde5-2ce4-40a7-943e-23cdb68b3dd5.mov

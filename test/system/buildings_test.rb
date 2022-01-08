@@ -123,10 +123,10 @@ class BuildingsTest < ApplicationSystemTestCase
   test "selecting a Country refreshs the State options" do
     visit new_building_path
     within_section "New building" do
-      select("Vatican City", from: "Country").then { click_on "Select country" }
+      select("Vatican City", from: "Country")
       assert_no_select "State"
 
-      select("Canada", from: "Country").then { click_on "Select country" }
+      select("Canada", from: "Country")
       assert_select "State", fieldset: "Address", selected: "Alberta"
     end
   end

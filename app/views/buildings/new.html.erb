@@ -33,9 +33,17 @@
     <% end %>
 
     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
-      <%= form.label :country %>
-      <%= form.select :country, @building.countries.invert %>
-      <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
+      <div class="contents" data-controller="element">
+        <%= form.label :country %>
+        <%= form.select :country, @building.countries.invert, {}, autocomplete: "off",
+                        data: { action: "change->element#click" } %>
+
+        <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden
+               data-element-target="click">
+        <noscript>
+          <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
+        </noscript>
+      </div>
 
       <%= form.label :line_1 %>
       <%= form.text_field :line_1 %>
