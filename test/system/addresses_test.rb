@@ -33,15 +33,15 @@ class AddressesTest < ApplicationSystemTestCase
   test "renders the estimated arrival time based on the country" do
     visit new_address_path
 
-    select("United States", from: "Country").then { click_on "Select country" }
+    select("United States", from: "Country")
 
     assert_text "Estimated arrival: 8 months from now."
 
-    select("Canada", from: "Country").then { click_on "Select country"}
+    select("Canada", from: "Country")
 
     assert_text "Estimated arrival: about 1 month from now."
 
-    select("Albania", from: "Country").then { click_on "Select country"}
+    select("Albania", from: "Country")
 
     assert_text "Estimated arrival: 5 days from now."
   end
@@ -50,10 +50,10 @@ class AddressesTest < ApplicationSystemTestCase
     visit new_address_path
     within_section "New address" do
       fill_in "Line 1", with: "1384 Broadway"
-      select("Vatican City", from: "Country").then { click_on "Select country" }
+      select("Vatican City", from: "Country")
       assert_no_select "State"
 
-      select("Canada", from: "Country").then { click_on "Select country" }
+      select("Canada", from: "Country")
       assert_select "State", selected: "Alberta"
     end
 
