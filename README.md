@@ -619,3 +619,50 @@ to encode those values during rendering:
 ```
 
 https://user-images.githubusercontent.com/2575027/148697502-24076160-603c-4c52-ad6b-aa8163def4f9.mov
+
+While `<input type="radio">` elements are an appropriate choice for our set of
+three possible choices, it's worthwhile to consider how we might handle a larger
+set of choices. A natural progression might involve replacing the `<input
+type="radio">` buttons with a `<select>`:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Describe the building" do %>
+-      <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
+-        <span>
+-          <%= builder.radio_button autocomplete: "off",
+-                                   aria: { controls: form.field_id(:building_type, builder.value, :fieldset) },
+-                                   data: { action: "input->fields#enable" } %>
+-          <%= builder.label %>
+-        </span>
++      <%= form.label :building_type %>
++      <%= form.select :building_type, {}, {}, autocomplete: "off",
++                      data: { action: "change->fields#enable" } do %>
++        <% Building.building_types.keys.each do |value| %>
++          <%= tag.option value.humanize, value: value,
++                         aria: { controls: form.field_id(:building_type, value, :fieldset) } %>
++        <% end %>
+       <% end %>
+```
+
+Since it's possible for a `<select>` to have multiple "selected" options, we'd
+need to account for that possibility in the `fields` controller:
+
+```diff
+--- a/app/javascript/controllers/fields_controller.js
++++ b/app/javascript/controllers/fields_controller.js
+@@ -2,7 +2,9 @@ import { Controller } from "@hotwired/stimulus"
+
+ export default class extends Controller {
+   enable({ target }) {
+-    const selectedElements = [ target ]
++    const selectedElements = "selectedOptions" in target ?
++      target.selectedOptions :
++      [ target ]
+
+     for (const field of this.element.elements.namedItem(target.name)) {
+       if (field instanceof HTMLFieldSetElement) field.disabled = true
+```
+
+https://user-images.githubusercontent.com/2575027/148697637-ea9512ae-0fee-4a7d-b0d2-065839f3b3b4.mov

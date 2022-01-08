@@ -5,13 +5,13 @@
     <%= render partial: "errors", object: @building.errors %>
 
     <%= field_set_tag "Describe the building" do %>
-      <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
-        <span>
-          <%= builder.radio_button autocomplete: "off",
-                                   aria: { controls: form.field_id(:building_type, builder.value, :fieldset) },
-                                   data: { action: "input->fields#enable" } %>
-          <%= builder.label %>
-        </span>
+      <%= form.label :building_type %>
+      <%= form.select :building_type, {}, {}, autocomplete: "off",
+                      data: { action: "change->fields#enable" } do %>
+        <% Building.building_types.keys.each do |value| %>
+          <%= tag.option value.humanize, value: value,
+                         aria: { controls: form.field_id(:building_type, value, :fieldset) } %>
+        <% end %>
       <% end %>
       <noscript>
         <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
