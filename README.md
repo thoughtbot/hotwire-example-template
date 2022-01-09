@@ -181,3 +181,175 @@ class BuildingsController < ApplicationController
   end
 end
 ```
+
+## Interactivity and dynamic options
+
+Our starting point serves as a solid, reliable, and robust foundation. The
+"moving parts" are kept to a minimum. The form collects information with or
+without the presence of a JavaScript-capable browsing environment.
+
+With that being said, there is still an opportunity to improve the end-user
+experience. We'll start with a JavaScript-free baseline, then we'll
+progressively the form, adding dynamism and improving its interactivity along
+the way.
+
+To start, let's support `Building` record in Countries outside the United
+States. We'll add a `<select>` to our provide end-users with a collection of
+Country options:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
++      <%= form.label :country %>
++      <%= form.select :country, @building.countries.invert %>
++
+       <%= form.label :line_1 %>
+       <%= form.text_field :line_1 %>
+```
+
+Along with the new field, we'll add a matching key name to the
+`BuildingsController#building_params` implementation to read the new value from
+a submission's parameters:
+
+```diff
+--- a/app/controllers/buildings_controller.rb
++++ b/app/controllers/buildings_controller.rb
+   def building_params
+     params.require(:building).permit(
+       :building_type,
+       :management_phone_number,
+       :building_type_description,
+       :line_1,
+       :line_2,
+       :city,
+       :state,
+       :postal_code,
++      :country,
+     )
+   end
+ end
+```
+
+While the new `<select>` provides an opportunity to pick a different Country,
+that choice won't be reflected in the `<form>` element's collection of States.
+
+What tools do we have at our disposal to synchronize the "States" `<select>`
+with what's chosen in the "Countries" `<select>`? Could we fetch new `<select>`
+and `<option>` elements from the server without without using
+[XMLHttpRequest][], [fetch][], or any JavaScript at all?
+
+[XMLHttpRequest]: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+[fetch]: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+
+### Fetching remote data without JavaScript
+
+Browsers provide a built-in mechanism to submit HTTP requests without JavaScript
+code: `<form>` elements. By clicking `<button>` and `<input type="submit">`
+elements, end-users submit `<form>` elements and issue HTTP requests. What's
+more, those `<button>` elements are capable of overriding _where_ and _how_ that
+`<form>` element transmits its submission by through their [formmethod][] and
+[formaction][] attributes.
+
+We'll change our `<form>` to present a "Select country" `<button>` element to
+refresh the page's "State" options:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
+       <%= form.label :country %>
+       <%= form.select :country, @building.countries.invert %>
++      <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
+
+       <%= form.label :line_1 %>
+```
+
+The `<button>` element's `[formmethod="get"]` attribute directs the `<form>` to
+submit as an [HTTP GET][] request and the `[formaction="/buildings/new"]`
+attribute directs the `<Form>` to submit to the `/buildings/new` path. This
+verb-path pairing might seem familiar: it's the same request our browser will
+make when we visit the current page.
+
+Submitting `<form>` as a `GET` request will encode all of the fields' values
+into [URL parameters][]. We can read those values in our `buildings#new` action
+whenever they're provided, and use them when rendering the `<form>` element and
+its fields:
+
+```diff
+--- a/app/controllers/buildings_controller.rb
++++ b/app/controllers/buildings_controller.rb
+ class BuildingsController < ApplicationController
+   def new
+-    @building = Building.new
++    @building = Building.new building_params
+   end
+
+   def create
+@@ -20,7 +20,7 @@ class BuildingsController < ApplicationController
+   private
+
+   def building_params
+-    params.require(:building).permit(
++    params.fetch(:building, {}).permit(
+       :building_type,
+       :management_phone_number,
+       :building_type_description,
+       :line_1,
+       :line_2,
+       :city,
+       :state,
+       :postal_code,
+       :country,
+     )
+   end
+ end
+```
+
+https://user-images.githubusercontent.com/2575027/148697350-1051ef05-0671-4c80-b120-88b37d6bfd46.mov
+
+It's worth noting that there are countries that don't have "State" options (like
+Vatican City), so we'll also want to account for that case in our
+`buildings/new` template:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+       <%= form.text_field :city %>
+
++      <% if @building.states.any? %>
+         <%= form.label :state %>
+         <%= form.select :state, @building.states.invert %>
++      <% end %>
+
+       <%= form.label :postal_code %>
+       <%= form.text_field :postal_code %>
+```
+
+https://user-images.githubusercontent.com/2575027/148697400-3668ed1d-f2b1-4923-b8ca-3558650eb517.mov
+
+Submitting the form's values as query parameters comes with two caveats:
+
+1.  Any selected `<input type="file">` values will be discarded
+
+2.  according to the [HTTP specification][], there are no limits on the length of
+    a URI:
+
+    > The HTTP protocol does not place any a priori limit on the length of
+    > a URI. Servers MUST be able to handle the URI of any resource they
+    > serve, and SHOULD be able to handle URIs of unbounded length if they
+    > provide GET-based forms that could generate such URIs.
+    >
+    > - 3.2.1 General Syntax
+
+    Unfortunately, in practice, [conventional wisdom][] suggests that URLs over
+    2,000 characters are risky.
+
+In the case of our simple example `<form>`, neither points pose any risk.
+
+[HTTP specification]: https://tools.ietf.org/html/rfc2616#section-3.2.1
+[conventional wisdom]: https://stackoverflow.com/a/417184
+[URL parameters]: https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters
+[formmethod]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formmethod
+[formaction]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formaction
+[HTTP GET]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET

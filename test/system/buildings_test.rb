@@ -6,6 +6,7 @@ class BuildingsTest < ApplicationSystemTestCase
     within_section "New building" do
       choose "Owned", fieldset: "Describe the building"
       within_fieldset "Address" do
+        select "United States", from: "Country"
         fill_in "Line 1", with: "1384 Broadway"
         fill_in "Line 2", with: "Floor 20"
         fill_in "City", with: "New York"
@@ -27,6 +28,7 @@ class BuildingsTest < ApplicationSystemTestCase
       choose "Leased", fieldset: "Describe the building"
       fill_in "Management phone number", with: "5555555555", fieldset: "Leased"
       within_fieldset "Address" do
+        select "United States", from: "Country"
         fill_in "Line 1", with: "1384 Broadway"
         fill_in "Line 2", with: "Floor 20"
         fill_in "City", with: "New York"
@@ -49,6 +51,7 @@ class BuildingsTest < ApplicationSystemTestCase
       choose "Other", fieldset: "Describe the building"
       fill_in "Description", with: "In escrow", fieldset: "Other"
       within_fieldset "Address" do
+        select "United States", from: "Country"
         fill_in "Line 1", with: "1384 Broadway"
         fill_in "Line 2", with: "Floor 20"
         fill_in "City", with: "New York"
@@ -69,6 +72,7 @@ class BuildingsTest < ApplicationSystemTestCase
     within_section "New building" do
       choose "Owned", fieldset: "Describe the building"
       within_fieldset "Address" do
+        select "United States", from: "Country"
         fill_in "Line 1", with: "1384 Broadway"
         fill_in "Line 2", with: "Floor 20"
       end
@@ -84,6 +88,7 @@ class BuildingsTest < ApplicationSystemTestCase
     within_section "New building" do
       choose "Leased", fieldset: "Describe the building"
       within_fieldset "Address" do
+        select "United States", from: "Country"
         fill_in "Line 1", with: "1384 Broadway"
         fill_in "Line 2", with: "Floor 20"
       end
@@ -99,6 +104,7 @@ class BuildingsTest < ApplicationSystemTestCase
     within_section "New building" do
       choose "Other", fieldset: "Describe the building"
       within_fieldset "Address" do
+        select "United States", from: "Country"
         fill_in "Line 1", with: "1384 Broadway"
         fill_in "Line 2", with: "Floor 20"
       end
@@ -107,6 +113,20 @@ class BuildingsTest < ApplicationSystemTestCase
 
     assert_no_selector :section, "1384 Broadway Floor 20"
     assert_selector :alert, "Description can't be blank"
+  end
+
+  test "selecting a Country refreshs the State options" do
+    visit new_building_path
+    within_section "New building" do
+      fill_in "Line 1", with: "1384 Broadway"
+      select("Vatican City", from: "Country").then { click_on "Select country" }
+      assert_no_select "State"
+
+      select("Canada", from: "Country").then { click_on "Select country" }
+      assert_select "State", fieldset: "Address", selected: "Alberta"
+    end
+
+    assert_field "Line 1", with: "1384 Broadway"
   end
 
   def within_section(*arguments, **options, &block)
