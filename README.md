@@ -1105,8 +1105,263 @@ scroll:
 
 https://user-images.githubusercontent.com/2575027/148697842-3bfad620-98da-449a-a582-403055fe4b42.mov
 
+The `turbo_stream.replace` call accepts the same options as the
+[`render`][render] call, and supports the same
+[`to_partial_path`][to_partial_path]-reliant short-hand notation:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+           <%= form.select :state, @building.states.invert %>
+         <% end %>
+-        <%= turbo_stream.replace dom_id(@building), partial: "buildings/building", object: @building %>
++        <%= turbo_stream.replace @building %>
+       </turbo-frame>
+
+       <%= form.label :postal_code %>
+       <%= form.text_field :postal_code %>
+     <% end %>
+
+-    <%= render partial: "buildings/building", object: @building %>
++    <%= render @building %>
+
+     <%= form.button %>
+   <% end %>
+```
+
 [action="replace"]: https://turbo.hotwired.dev/reference/streams#replace
 [XMLHttpRequest]: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
 [fetch]: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 [Custom Element]: https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements
 [turbo_stream_helper]: https://github.com/hotwired/turbo-rails/blob/v1.0.0/app/models/turbo/streams/tag_builder.rb#L53-L61
+[render]: https://edgeapi.rubyonrails.org/classes/ActionView/Helpers/RenderingHelper.html#method-i-render
+[to_partial_path]: https://guides.rubyonrails.org/layouts_and_rendering.html#passing-local-variables
+
+## Wrapping up
+
+<details>
+  <summary>The total diff:</summary>
+
+```diff
+diff --git a/app/controllers/buildings_controller.rb b/app/controllers/buildings_controller.rb
+index 8cb6c6e..3b4e6b0 100644
+--- a/app/controllers/buildings_controller.rb
++++ b/app/controllers/buildings_controller.rb
+@@ -1,6 +1,6 @@
+ class BuildingsController < ApplicationController
+   def new
+-    @building = Building.new
++    @building = Building.new building_params
+   end
+
+   def create
+@@ -20,7 +20,7 @@ class BuildingsController < ApplicationController
+   private
+
+   def building_params
+-    params.require(:building).permit(
++    params.fetch(:building, {}).permit(
+       :building_type,
+       :management_phone_number,
+       :building_type_description,
+@@ -29,6 +29,7 @@ class BuildingsController < ApplicationController
+       :city,
+       :state,
+       :postal_code,
++      :country,
+     )
+   end
+ end
+diff --git a/app/javascript/controllers/element_controller.js b/app/javascript/controllers/element_controller.js
+new file mode 100644
+index 0000000..87fd306
+--- /dev/null
++++ b/app/javascript/controllers/element_controller.js
+@@ -0,0 +1,9 @@
++import { Controller } from "@hotwired/stimulus"
++
++export default class extends Controller {
++  static get targets() { return [ "click" ] }
++
++  click() {
++    this.clickTargets.forEach(target => target.click())
++  }
++}
+diff --git a/app/javascript/controllers/fields_controller.js b/app/javascript/controllers/fields_controller.js
+new file mode 100644
+index 0000000..932b270
+--- /dev/null
++++ b/app/javascript/controllers/fields_controller.js
+@@ -0,0 +1,30 @@
++import { Controller } from "@hotwired/stimulus"
++
++export default class extends Controller {
++  enable({ target }) {
++    const elements = Array.from(this.element.elements)
++    const selectedElements = "selectedOptions" in target ?
++      target.selectedOptions :
++      [ target ]
++
++    for (const element of elements.filter(element => element.name == target.name)) {
++      if (element instanceof HTMLFieldSetElement) element.disabled = true
++    }
++
++    for (const element of controlledElements(...selectedElements)) {
++      if (element instanceof HTMLFieldSetElement) element.disabled = false
++    }
++  }
++}
++
++function controlledElements(...selectedElements) {
++  return selectedElements.flatMap(selectedElement =>
++    getElementsByTokens(selectedElement.getAttribute("aria-controls"))
++  )
++}
++
++function getElementsByTokens(tokens) {
++  const ids = (tokens ?? "").split(/\s+/)
++
++  return ids.map(id => document.getElementById(id))
++}
+diff --git a/app/javascript/controllers/search_params_controller.js b/app/javascript/controllers/search_params_controller.js
+new file mode 100644
+index 0000000..b190b1d
+--- /dev/null
++++ b/app/javascript/controllers/search_params_controller.js
+@@ -0,0 +1,11 @@
++import { Controller } from "@hotwired/stimulus"
++
++export default class extends Controller {
++  static get targets() { return [ "anchor" ] }
++
++  encode({ target: { name, value } }) {
++    for (const anchor of this.anchorTargets) {
++      anchor.search = new URLSearchParams({ [name]: value })
++    }
++  }
++}
+diff --git a/app/models/building.rb b/app/models/building.rb
+index 81cb5b8..ffacc5d 100644
+--- a/app/models/building.rb
++++ b/app/models/building.rb
+@@ -29,4 +29,8 @@ class Building < ApplicationRecord
+   def state_name
+     states[state]
+   end
++
++  def estimated_arrival_on
++    countries.keys.index(country).days.from_now
++  end
+ end
+diff --git a/app/views/buildings/_building.html.erb b/app/views/buildings/_building.html.erb
+new file mode 100644
+index 0000000..0d56cf1
+--- /dev/null
++++ b/app/views/buildings/_building.html.erb
+@@ -0,0 +1,3 @@
++<div id="<%= dom_id(building) %>">
++  <p>Estimated arrival: <%= distance_of_time_in_words_to_now building.estimated_arrival_on %> from now.</p>
++</div>
+diff --git a/app/views/buildings/new.html.erb b/app/views/buildings/new.html.erb
+index 9c6641e..6c58944 100644
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+@@ -1,29 +1,50 @@
+ <section class="w-full max-w-lg">
+   <h1>New building</h1>
+
+-  <%= form_with model: @building do |form| %>
++  <%= form_with model: @building, data: { controller: "fields" } do |form| %>
+     <%= render partial: "errors", object: @building.errors %>
+
+     <%= field_set_tag "Describe the building" do %>
+-      <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
+-        <span>
+-          <%= builder.radio_button %>
+-          <%= builder.label %>
+-        </span>
++      <%= form.label :building_type %>
++      <%= form.select :building_type, {}, {}, autocomplete: "off",
++                      data: { action: "change->fields#enable" } do %>
++        <% Building.building_types.keys.each do |value| %>
++          <%= tag.option value.humanize, value: value,
++                         aria: { controls: form.field_id(:building_type, value, :fieldset) } %>
+         <% end %>
+       <% end %>
++      <noscript>
++        <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
++      </noscript>
++    <% end %>
+
+-    <%= field_set_tag "Leased" do %>
++    <%= field_set_tag "Leased", disabled: !@building.leased?, class: "disabled:hidden",
++                                id: form.field_id(:building_type, :leased, :fieldset),
++                                name: form.field_name(:building_type) do %>
+       <%= form.label :management_phone_number %>
+       <%= form.telephone_field :management_phone_number %>
+     <% end %>
+
+-    <%= field_set_tag "Other" do %>
++    <%= field_set_tag "Other", disabled: !@building.other?, class: "disabled:hidden",
++                               id: form.field_id(:building_type, :other, :fieldset),
++                               name: form.field_name(:building_type) do %>
+       <%= form.label :building_type_description %>
+       <%= form.text_field :building_type_description %>
+     <% end %>
+
+     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
++      <div class="contents" data-controller="search-params element">
++        <%= form.label :country %>
++        <%= form.select :country, @building.countries.invert, {}, autocomplete: "off",
++                        data: { action: "change->search-params#encode change->element#click" } %>
++
++        <a href="<%= new_building_path %>" data-search-params-target="anchor" hidden
++               data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></a>
++        <noscript>
++          <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
++        </noscript>
++      </div>
++
+       <%= form.label :line_1 %>
+       <%= form.text_field :line_1 %>
+
+@@ -33,13 +54,20 @@
+       <%= form.label :city %>
+       <%= form.text_field :city %>
+
++      <turbo-frame id="<%= form.field_id(:state, :turbo_frame) %>" class="contents">
++        <% if @building.states.any? %>
+           <%= form.label :state %>
+           <%= form.select :state, @building.states.invert %>
++        <% end %>
++        <%= turbo_stream.replace @building %>
++      </turbo-frame>
+
+       <%= form.label :postal_code %>
+       <%= form.text_field :postal_code %>
+     <% end %>
+
++    <%= render @building %>
++
+     <%= form.button %>
+   <% end %>
+ </section>
+```
+
+</details>
+
+We were able to progressively enhance while keeping all the details of our
+requests declaratively encoded into the document's HTML.
+
+While our example never called for us to make [XMLHttpRequest][] or [fetch][]
+requests directly, there might be situations that arise that require more
+bespoke JavaScript. For example, it might behoove us to synthesize a `<form>`
+element outside the scope of the current `<form>` in the same way as
+`@rails/ujs`-powered [remote fields][], or we might want to encode a subset of a
+`<form>` element's values into a URL's [searchParams][] instance.
+
+Regardless of the situations constraints, we should start our problem solving
+with the help of browsers' built-in, HTML Specification-compliant features.
+
+[remote fields]: https://guides.rubyonrails.org/working_with_javascript_in_rails.html#data-url-and-data-params
+[searchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URL/searchParams
