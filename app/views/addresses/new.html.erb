@@ -32,6 +32,7 @@
         <%= form.label :state %>
         <%= form.select :state, @address.states.invert %>
       <% end %>
+      <%= turbo_stream.replace dom_id(@address), partial: "addresses/address", object: @address %>
     </turbo-frame>
 
     <%= form.label :postal_code %>
