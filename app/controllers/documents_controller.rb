@@ -1,6 +1,6 @@
 class DocumentsController < ApplicationController
   def new
-    @document = Document.new
+    @document = Document.new document_params
   end
 
   def create
@@ -20,7 +20,7 @@ class DocumentsController < ApplicationController
   private
 
   def document_params
-    params.require(:document).permit(
+    params.fetch(:document, {}).permit(
       :access,
       :passcode,
       :content,

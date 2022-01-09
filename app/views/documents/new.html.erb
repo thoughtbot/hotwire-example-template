@@ -7,13 +7,14 @@
     <%= field_set_tag "Access" do %>
       <%= form.collection_radio_buttons :access, Document.accesses.keys, :to_s, :humanize do |builder| %>
         <span>
-          <%= builder.radio_button %>
+          <%= builder.radio_button autocomplete: "off" %>
           <%= builder.label %>
         </span>
       <% end %>
+      <button formmethod="get" formaction="<%= new_document_path %>">Select access</button>
     <% end %>
 
-    <%= field_set_tag "Passcode protected" do %>
+    <%= field_set_tag "Passcode protect", disabled: !@document.passcode_protect?, class: "disabled:hidden" do %>
       <%= form.label :passcode %>
       <%= form.text_field :passcode %>
     <% end %>

@@ -174,3 +174,176 @@ template that [Rails scaffolds for new models][scaffolds]:
 [_errors]: https://github.com/thoughtbot/hotwire-example-template/blob/hotwire-example-stimulus-dynamic-forms/app/views/application/_errors.html.erb
 
 ![Validation error messages rendered above the form's fields](https://images.thoughtbot.com/blog-vellum-image-uploads/VMkuufpQWuUuureWAcof_150657724-98d59bc0-4eda-4f75-bc83-3e2f587e3ec8.png)
+
+## Dynamic form fields without JavaScript
+
+So far, our page's starting point serves as a robust foundation that relies on
+fundamental concepts built-into the web. The form collects information and
+submits it to the server, and even works in browsers with JavaScript disabled.
+
+With our foundation in place, we can start to make incremental improvements. For
+example, always rendering the "passcode" field, regardless of the currently
+selected "access" level might confuse an end-user. To enhance that experience,
+we'll introduce a mechanism to hide "passcode" fields and ignore any already
+provided "passcode" values when the selected level of access is  "publish" or
+"draft".
+
+We can render the "passcode" field's ancestor `<fieldset>` element with the
+[disabled][fieldset-disabled] attribute. The attribute controls whether or not
+to encode values from its descendant fields into the form submission's request.
+
+When rendering the `app/views/documents/new.html.erb` template, we'll mark the
+`<fieldset>` element with the `[disabled]` [boolean attribute][] if the
+`Document` record's "access" level is anything other than "passcode protect":
+
+```diff
+--- a/app/views/documents/new.html.erb
++++ b/app/views/documents/new.html.erb
+-    <%= field_set_tag "Passcode protected" do %>
++    <%= field_set_tag "Passcode protect", disabled: !@document.passcode_protect? do %>
+       <%= form.label :passcode %>
+       <%= form.text_field :passcode %>
+     <% end %>
+```
+
+When the `<fieldset>` element is `[disabled]`, it matches the [:disabled][]
+pseudo-class. Our application can rely on that pseudo-class to control its
+visibility within the page. For example, when the `<fieldset>` is disabled, we
+can apply the [display: none][] rule by combining Tailwind's [`disabled:`
+variant][tw-disabled] with its [`hidden` class][tw-hidden]:
+
+```diff
+-    <%= field_set_tag "Passcode protect", disabled: !@document.passcode_protect? do %>
++    <%= field_set_tag "Passcode protect", disabled: !@document.passcode_protect?, class: "disabled:hidden" do %>
+       <%= form.label :passcode %>
+       <%= form.text_field :passcode %>
+     <% end %>
+```
+
+While responding to an invalid submission, the `DocumentsController#create`
+controller action and subsequent `app/views/documents/new.html.erb` template
+rendering will share the same `Document` instance. This means that along with
+any validation error messages, the view will render the `<fieldset>` element's
+`[disabled]` attribute _and_ the corresponding `<input type="radio">` element
+based on whether the instance is passcode protected.
+
+[fieldset-disabled]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/fieldset#attr-disabled
+[boolean attribute]: https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes#boolean_attributes
+[:disabled]: https://developer.mozilla.org/en-US/docs/Web/CSS/:disabled
+[display: none]: https://developer.mozilla.org/en-US/docs/Web/CSS/display#box
+[tw-disabled]: https://tailwindcss.com/docs/hover-focus-and-other-states#disabled
+[tw-hidden]: https://tailwindcss.com/docs/display#hidden
+
+Since our servers are responsible for rendering the page's HTML, we need to
+communicate with the server to render HTML in response to a client-side change
+to the "access" level. What would it take to render new HTML from the server
+without using [XMLHttpRequest][], [fetch][], or any JavaScript at all?
+
+[XMLHttpRequest]: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+[fetch]: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+
+### Fetching remote data without JavaScript
+
+Browsers provide a built-in mechanism to submit HTTP requests without JavaScript
+code: `<form>` elements. End-users can submit `<form>` elements to issue HTTP
+requests by clicking `<button>` and `<input type="submit">` elements.  What's
+more, those `<button>` elements are capable of overriding _where_ and _how_ that
+`<form>` element transmits its submission by through their [formmethod][] and
+[formaction][] attributes.
+
+Alongside our `<input type="radio">` elements (grouped within the "Access" field
+set), we'll add a "Select access" `<button>` element to keep the field set and
+access level synchronized:
+
+```diff
+--- a/app/views/documents/new.html.erb
++++ b/app/views/documents/new.html.erb
+     <%= field_set_tag "Access" do %>
+       <%= form.collection_radio_buttons :access, Document.accesses.keys, :to_s, :humanize do |builder| %>
+         <span>
+           <%= builder.radio_button %>
+           <%= builder.label %>
+         </span>
+       <% end %>
++      <button formmethod="get" formaction="<%= new_document_path %>">Select access</button>
+     <% end %>
+```
+
+The `<button>` element's `[formmethod="get"]` attribute directs the `<form>` to
+submit as an [HTTP GET][] request and the `[formaction="/documents/new"]`
+attribute directs the `<form>` to submit to the `/documents/new` path. This HTTP
+verb and URL path pairing might seem familiar: it's the same request our browser
+will make when we visit the current page.
+
+Submitting `<form>` as a `GET` request encodes all the fields' values into [URL
+parameters][]. We can read those values in the `DocumentsController#new` action
+whenever they're provided, and use them to render the `<form>` element and its
+fields:
+
+[HTTP GET]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET
+
+```diff
+--- a/app/controllers/documents_controller.rb
++++ b/app/controllers/documents_controller.rb
+ class DocumentsController < ApplicationController
+   def new
+-    @document = Document.new
++    @document = Document.new document_params
+   end
+```
+
+Since the `DocumentsController#new` action might handle requests that don't
+encode any URL parameters, we also need to change the
+`DocumentsController#document_params` method to return an empty hash in the
+absence of a `params[:document]` value:
+
+```diff
+--- a/app/controllers/documents_controller.rb
++++ b/app/controllers/documents_controller.rb
+   def document_params
+-    params.require(:document).permit(
++    params.fetch(:document, {}).permit(
+       :access,
+       :passcode,
+       :content,
+```
+
+If an "access" level is encoded into the request's URL parameters, those values
+will be forwarded along to the `Document` instance referenced while rendering
+the `app/views/documents/new.html.erb` template.
+
+That instance's access level controls whether or not the "passcode" `<fieldset>`
+element will be rendered as `[disabled]`, which in turn controls its visibility
+within the page:
+
+https://user-images.githubusercontent.com/2575027/150658326-72a0a8e6-c131-41c6-a364-e049d6f7f982.mov
+
+Submitting the form's values as query parameters comes with two caveats:
+
+1.  Any selected `<input type="file">` values will be discarded
+
+2.  According to the [HTTP specification][], there are no limits on the length of
+    a URI:
+
+    > The HTTP protocol does not place any a priori limit on the length of
+    > a URI. Servers MUST be able to handle the URI of any resource they
+    > serve, and SHOULD be able to handle URIs of unbounded length if they
+    > provide GET-based forms that could generate such URIs.
+    >
+    > - 3.2.1 General Syntax
+
+    Unfortunately, in practice, [conventional wisdom][] suggests that URLs over
+    2,000 characters are risky.
+
+In our example's case, a URL query string exceeding 2,000 characters is a real
+risk, since a  `Document` record's `content` could exceed that limit on its own,
+regardless of other form field names and values. When deploying this pattern in
+your own applications, it's worthwhile to assess this risk on a case by case
+basis.
+
+[HTTP specification]: https://tools.ietf.org/html/rfc2616#section-3.2.1
+[conventional wisdom]: https://stackoverflow.com/a/417184
+[URL parameters]: https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters
+[formmethod]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formmethod
+[formaction]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formaction
+[HTTP GET]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET
