@@ -233,3 +233,176 @@ class AddressesController < ApplicationController
   end
 end
 ```
+
+## Interactivity and dynamic options
+
+So far, our starting point serves as a simple and sturdy foundation that relies
+on built-in concepts that are fundamental to The Web. The form collects
+information and submits it to the server, and even works in the absence of
+JavaScript.
+
+With our ground work laid out, we can start to build incremental improvements to
+the experience. Our form's biggest issue is its inability to collect a country
+or state outside of the United States. Let's fix that!
+
+While it might be tempting to [render all possible country and states pairings
+directly into the document][dynamic-forms-with-stimulus], that would require
+rendering about 3,400 elements in every form:
+
+[dynamic-forms-with-stimulus]: https://thoughtbot.com/blog/dynamic-forms-with-stimulus
+
+```ruby
+irb(main):001:0> country_codes = CS.countries.keys
+=>
+[:AD,
+...
+irb(main):002:0> country_codes.flat_map { |code| CS.states(code).keys }.count
+=> 3391
+```
+
+Rendering that many elements would inefficient. Instead, we'll render a single
+country-state pairing, then retrieve a new pairing whenever the selected country
+changes. To start, we'll remove the `<fieldset>` element's `[disabled]`
+attribute to support collecting countries outside the United States:
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+-    <fieldset class="contents" disabled>
++    <fieldset class="contents">
+       <%= form.label :country %>
+       <%= form.select :country, @address.countries.invert %>
+     </fieldset>
+```
+
+While the new `<select>` provides an opportunity to pick a different country,
+that choice won't be reflected in the form's list of state options. How might we
+fetch an up-to-date `<option>` element list from the server? Could we do it
+without using [XMLHttpRequest][], [fetch][], or any JavaScript at all?
+
+[XMLHttpRequest]: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
+[fetch]: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+
+## Refreshing content without JavaScript
+
+Browsers support a built-in mechanism to submit HTTP requests without JavaScript
+code: `<form>` elements. When submitting `<form>` elements, browsers transform
+the element and its related controls into HTTP requests. The `<form>` element's
+[`[action]`][form-action] and [`[method]`][form-method] attributes inform the
+request's URL and HTTP verb.
+
+When a `<button>` or `<input type="submit">` element declares a
+[`[formaction]`][formaction] or [`[formmethod]`][formmethod] attribute, clicking
+the element provides an opportunity to override _where_ and _how_ its form is
+transmitted to the server.
+
+Since the `app/views/addresses/new.html.erb` template renders the `<form>`
+element with `[method="post"]` and `[action="/addresses"]`, browsers will [URL
+encode][application/x-www-form-urlencoded] its controls into into the body of
+`POST /addresses` HTTP requests. If we declared a second `<button>` element to
+override the verb and URL, we could re-use that encoding process to navigate to
+a page with a list of state `<option>` elements that reflects the selected
+country.
+
+We'll add a "Select country" `<button>` element, making sure to render it with
+`[formmethod]` and `[formaction]` attributes to direct the form to submit a `GET
+/addresses/new` request:
+
+[application/x-www-form-urlencoded]: https://url.spec.whatwg.org/#application/x-www-form-urlencoded
+[form-action]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#attr-action
+[form-method]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#attr-method
+[formmethod]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formmethod
+[formaction]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formaction
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+     <fieldset class="contents">
+       <%= form.label :country %>
+       <%= form.select :country, @address.countries.invert %>
++
++      <button formmethod="get" formaction="<%= new_address_path %>">Select country</button>
+     </fieldset>
+```
+
+Submitting a `GET /addresses/new` request encodes the form fields' name-value
+pairs into [URL parameters][]. The `AddressesController#new` action can read
+those values action whenever they're provided, and forward them along to the
+`Address` instance's constructor:
+
+```diff
+--- a/app/controllers/addresses_controller.rb
++++ b/app/controllers/addresses_controller.rb
+ class AddresssController < ApplicationController
+   def new
+-    @address = Address.new
++    @address = Address.new address_params
+   end
+```
+
+Since the `AddressesController#new` action might handle requests that don't
+encode any URL parameters (direct visits to `/addresses/new`, for example), we
+also need to change the `AddressesController#address_params` method to return an
+empty hash in the absence of a `params[:address]` value:
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+   def address_params
+-    params.require(:address).permit(
++    params.fetch(:address, {}).permit(
+       :country,
+       :line_1,
+       :line_2,
+       :city,
+       :state,
+       :postal_code,
+     )
+   end
+ end
+```
+
+https://user-images.githubusercontent.com/2575027/151675681-775f105f-8663-4ded-8d5c-a9630afaa50d.mov
+
+There are countries that don't have states or provinces. We'll add a conditional
+guard against that case to our `app/views/addresses/new.html.erb` template:
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
++    <% if @address.states.any? %>
+       <%= form.label :state %>
+       <%= form.select :state, @address.states.invert %>
++    <% end %>
+```
+
+https://user-images.githubusercontent.com/2575027/151675699-b18893f9-56aa-4a23-8266-8445f9b56823.mov
+
+Submitting the form's values as query parameters comes with two caveats:
+
+1.  Any selected `<input type="file">` values will be discarded
+
+2.  According to the [HTTP specification][], there are no limits on the length of
+    a URI:
+
+    > The HTTP protocol does not place any a priori limit on the length of
+    > a URI. Servers MUST be able to handle the URI of any resource they
+    > serve, and SHOULD be able to handle URIs of unbounded length if they
+    > provide GET-based forms that could generate such URIs.
+    >
+    > - 3.2.1 General Syntax
+
+    Unfortunately, in practice, [conventional wisdom][] suggests that URLs over
+    2,000 characters are risky.
+
+Collecting file uploads, rich text content, or long-form prose would put us at
+risk. In our case, the combined lengths of our user-supplied values are
+[unlikely][address-fallacies] to exceed the 2,000 character limit. When
+deploying this pattern in your own applications, it's worthwhile to assess this
+risk on a case by case basis.
+
+[HTTP specification]: https://tools.ietf.org/html/rfc2616#section-3.2.1
+[conventional wisdom]: https://stackoverflow.com/a/417184
+[URL parameters]: https://developer.mozilla.org/en-US/docs/Learn/Common_questions/What_is_a_URL#parameters
+[HTTP GET]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET
+[address-fallacies]: https://www.mjt.me.uk/posts/falsehoods-programmers-believe-about-addresses/
