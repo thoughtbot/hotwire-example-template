@@ -783,3 +783,121 @@ With those changes in place, the `search-param` controller _only_ encodes the
 (e.g. `/addresses/new?address%5Bcountry%5D=US`). It omits the rest of the form's
 name-value pairings, then defers to the ensuing `element#click` controller
 action to programmatically click the element.
+
+### Refreshing content with Turbo Streams
+
+After we're finished celebrating our wins from introducing a Turbo Frame, we
+need to acknowledge the trade-off we made.
+
+Unfortunately, since the refreshed fragment is limited to the `<turbo-frame>`
+element, the frame discards the "Estimated arrival" portion of the response.
+Since that text is generated based on the selected country, it falls out of
+synchronization with the client-side state.
+
+While it might be tempting to calculate the estimation and render it
+client-side, or to refresh the text with a subsequent call to [XMLHttpRequest][]
+or [fetch][], there's an opportunity to deploy another new Turbo primitive: the
+[`<turbo-stream>`][turbo-stream] custom element.
+
+Since its release, a sizable portion of the Turbo fanfare has been dedicated to
+Streams and their ability to be [broadcast over WebSocket
+connections][stream-broadcast] or [encoded into form submission
+responses][stream-http-response]. We won't be using them in either of those
+capacities. Instead, we'll render a `<turbo-stream>` element directly into the
+document.
+
+[MIME Type]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+
+It's important to acknowledge the difference between the `<turbo-stream>`
+element and the `text/vnd.turbo-stream.html` [MIME Type][]. For example, the
+[turbo-rails][turbo-rails-engine] engine checks for the presence of
+`text/vnd.turbo-stream.html` within incoming [Accept][] HTTP request headers.
+When detected, the Rails will include `text/vnd.turbo-stream.html` in the
+[Content-Type][] HTTP response header. Coincidentally, responses with the
+`Content-Type: text/vnd.turbo-stream.html` header are also very likely to
+contain `<turbo-stream>` elements in their body.
+
+[turbo-rails-engine]: https://github.com/hotwired/turbo-rails/blob/v1.0.0/lib/turbo/engine.rb#L50-L61
+[Accept]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept
+[Content-Type]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
+
+Like `<turbo-frame>` custom elements, `<turbo-stream>` elements are valid HTML,
+and can be rendered _directly_ into documents. We'll render a `<turbo-stream>`
+element _within_ the `<turbo-frame>` element, so that when we navigate it, its
+new content will encode an operation to refresh the "Estimated arrival" text.
+
+A Turbo Stream is comprised of two parts: the operation and the contents. The
+`<turbo-stream>` element determines its operation from the
+[`[action]`][stream-action] attribute. The element that the operation will
+affect is referenced by `[id]` through the  `[target]` attribute. The
+operation's contents are nested within a single descendant
+[`<template>`][template] element. On their own, `<template>` elements are
+completely inert. They're ignored by the document regardless of whether or not
+JavaScript is enabled.
+
+We'll render a `<turbo-stream>` element with [action="replace"][] and a
+`[target]` attribute to reference the `<aside>` element rendered in the
+`app/views/addresses/_address.html.erb` view partial. The `<turbo-steam>` nests
+renders the `app/views/addresses/_address.html.erb` inside a `<template>`
+element:
+
+[turbo-stream]: https://turbo.hotwired.dev/handbook/streams#stream-messages-and-actions
+[stream-http-response]: https://turbo.hotwired.dev/handbook/streams#streaming-from-http-responses
+[stream-broadcast]: https://github.com/hotwired/turbo-rails/blob/v1.0.1/app/models/concerns/turbo/broadcastable.rb#L1-L50
+[WebSocket]: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
+[stream-action]: https://turbo.hotwired.dev/reference/streams#the-seven-actions
+[template]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template
+[action="replace"]: https://turbo.hotwired.dev/reference/streams#replace
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+         <%= form.label :state %>
+         <%= form.select :state, @address.states.invert %>
+       <% end %>
++      <turbo-stream target="<%= dom_id(@address) %>" action="replace">
++        <template><%= render partial: "addresses/address", object: @address %></template>
++      </turbo-stream>
+     </turbo-frame>
+```
+
+Since the contents of the `<turbo-stream>` element's nested `<template>` renders
+the `app/views/addresses/_address.html.erb` partial, we can call the
+[`turbo_stream.replace`][turbo_stream_helper] view helper provided by
+[turbo-rails][]:
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+         <%= form.label :state %>
+         <%= form.select :state, @address.states.invert %>
+       <% end %>
+-      <turbo-stream target="<%= dom_id(@address) %>" action="replace">
+-        <template><%= render partial: "addresses/address", object: @address %></template>
+-      </turbo-stream>
++      <%= turbo_stream.replace dom_id(@address), partial: "addresses/address", object: @address %>
+     </turbo-frame>
+```
+
+With that change in place, navigating the `<turbo-frame>` element replaces
+the list of "State" options _and_ replaces the "Estimated arrival" text
+elsewhere in the document, all without discarding other client-side state like
+focus or scroll:
+
+https://user-images.githubusercontent.com/2575027/151675733-d89c3c0d-8932-4efe-8fc7-a437184cfbb6.mov
+
+Keep in mind, using this strategy means that the *server* renders the
+`app/views/addresses/_address.html.erb` partial twice (once outside the `<form>`
+element, and once nested within a `<turbo-stream>`) _and_ the *browser* parses
+the content twice (once outside the `<form>` element, and once when executing
+the `[action="replace"]` operation).
+
+For text, content that isn't interactive, and content that doesn't load external
+resources, any negative end-user impact caused by double-parsing will be
+negligible. Double-loading an uncached external resource like an image or video
+might cause perceptible flickering during the second render. When deploying this
+pattern in your own applications, it's worthwhile to assess this risk on a case
+by case basis.
+
+[turbo-rails]: https://github.com/hotwired/turbo-rails
+[turbo_stream_helper]: https://github.com/hotwired/turbo-rails/blob/v1.0.0/app/models/turbo/streams/tag_builder.rb#L53-L61
