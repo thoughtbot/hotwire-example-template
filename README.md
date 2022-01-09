@@ -559,3 +559,18 @@ to support that possibility:
 ```
 
 https://user-images.githubusercontent.com/2575027/150658732-bb552dc2-4f25-4f26-b33b-ca539da6ac4b.mov
+
+## Wrapping up
+
+We set out to make our server-rendered form page more interactive. We
+established a foundational version guided by the [Rule of Least Power][].
+
+We started with a sturdy and robust foundation built atop HTML. We relied on
+HTTP requests to ensure our page was functional in the absence of JavaScript.
+From there, we leveraged Stimulus's ability to route browser-based events and
+infer application state from the document.
+
+By enhancing Rails-rendered HTML, we made several incremental JavaScript-powered
+progressive enhancements without the need for client-side re-rendering.
+
+[Rule of Least Power]: https://www.w3.org/2001/tag/doc/leastPower.html
