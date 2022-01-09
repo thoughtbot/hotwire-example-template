@@ -901,3 +901,34 @@ by case basis.
 
 [turbo-rails]: https://github.com/hotwired/turbo-rails
 [turbo_stream_helper]: https://github.com/hotwired/turbo-rails/blob/v1.0.0/app/models/turbo/streams/tag_builder.rb#L53-L61
+
+## Wrapping up
+
+Let's reflect on what we've built.
+
+Our form provides a list of "State" options based on the selected "Country". In
+the absence of JavaScript, the page relies on manual form submissions and
+full-page navigations to refresh the list. When JavaScript is enabled, the page
+relies on automatic form submissions, and Turbo Frame navigations. Throughout
+the process, our page maintains a server-calculated fragment of text based on
+the current "Country" selection. From start to finish, we relied on fundamental,
+[Standards-based mechanisms][HTML Standards], then progressively enhanced the
+experience with incremental improvements.
+
+Let's also reflect on some things that _aren't_ part of our implementation. The
+application code doesn't include:
+
+* additional routes or controllers dedicated to maintaining the
+  "Country"-"States" pairing
+* Turbo-aware code outside of the `app/views` directory
+* any calls to [XMLHttpRequest][] or [fetch][]
+* any [`async` functions][async] or [Promises][]
+* client-side templating of any kind
+
+When brainstorming a new feature, start by asking: "How far can we get with
+full-page transitions, server-rendered HTML, and form submissions?", then make
+incremental improvements from there.
+
+[HTML Standards]: https://html.spec.whatwg.org/multipage/
+[Promises]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+[async]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
