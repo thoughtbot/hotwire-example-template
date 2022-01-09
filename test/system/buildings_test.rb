@@ -4,7 +4,8 @@ class BuildingsTest < ApplicationSystemTestCase
   test "saves a valid Owned Building" do
     visit new_building_path
     within_section "New building" do
-      choose "Owned", fieldset: "Describe the building"
+      choose("Owned", fieldset: "Describe the building").then { click_on "Select type" }
+      assert_no_field "Management phone number", type: "tel", fieldset: "Leased"
       within_fieldset "Address" do
         select "United States", from: "Country"
         fill_in "Line 1", with: "1384 Broadway"
@@ -25,7 +26,9 @@ class BuildingsTest < ApplicationSystemTestCase
   test "saves a valid Rented Building" do
     visit new_building_path
     within_section "New building" do
-      choose "Leased", fieldset: "Describe the building"
+      assert_changes -> { page.has_field? "Management phone number", type: "tel", fieldset: "Leased" } do
+        choose("Leased", fieldset: "Describe the building").then { click_on "Select type" }
+      end
       fill_in "Management phone number", with: "5555555555", fieldset: "Leased"
       within_fieldset "Address" do
         select "United States", from: "Country"
@@ -48,7 +51,9 @@ class BuildingsTest < ApplicationSystemTestCase
   test "saves a valid Other Building" do
     visit new_building_path
     within_section "New building" do
-      choose "Other", fieldset: "Describe the building"
+      assert_changes -> { page.has_field? "Description", fieldset: "Other" } do
+        choose("Other", fieldset: "Describe the building").then { click_on "Select type" }
+      end
       fill_in "Description", with: "In escrow", fieldset: "Other"
       within_fieldset "Address" do
         select "United States", from: "Country"
@@ -118,15 +123,12 @@ class BuildingsTest < ApplicationSystemTestCase
   test "selecting a Country refreshs the State options" do
     visit new_building_path
     within_section "New building" do
-      fill_in "Line 1", with: "1384 Broadway"
       select("Vatican City", from: "Country").then { click_on "Select country" }
       assert_no_select "State"
 
       select("Canada", from: "Country").then { click_on "Select country" }
       assert_select "State", fieldset: "Address", selected: "Alberta"
     end
-
-    assert_field "Line 1", with: "1384 Broadway"
   end
 
   def within_section(*arguments, **options, &block)

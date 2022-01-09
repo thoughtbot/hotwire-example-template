@@ -7,18 +7,19 @@
     <%= field_set_tag "Describe the building" do %>
       <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
         <span>
-          <%= builder.radio_button %>
+          <%= builder.radio_button autocomplete: "off" %>
           <%= builder.label %>
         </span>
       <% end %>
+      <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
     <% end %>
 
-    <%= field_set_tag "Leased" do %>
+    <%= field_set_tag "Leased", disabled: !@building.leased?, class: "disabled:hidden" do %>
       <%= form.label :management_phone_number %>
       <%= form.telephone_field :management_phone_number %>
     <% end %>
 
-    <%= field_set_tag "Other" do %>
+    <%= field_set_tag "Other", disabled: !@building.other?, class: "disabled:hidden" do %>
       <%= form.label :building_type_description %>
       <%= form.text_field :building_type_description %>
     <% end %>

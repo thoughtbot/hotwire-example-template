@@ -353,3 +353,97 @@ In the case of our simple example `<form>`, neither points pose any risk.
 [formmethod]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formmethod
 [formaction]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attr-formaction
 [HTTP GET]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/GET
+
+### Controlling local data without JavaScript
+
+The "Describe the building" collection of `<input type="radio">` elements and
+the optional `<input>` elements in their corresponding `<fieldset>` element pose
+a similar opportunity. How might we conditionally present (and require!) those
+fields based on the current `<input type="radio">` selection?
+
+First, to control whether or not the values are submitted to the server, we can
+conditionally render them with the [disabled][fieldset-disabled] attribute.
+
+We can base the presence or absence of the attribute on the selected value
+(which is read from a URL parameter or defaults to "Owned"):
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+-    <%= field_set_tag "Leased" do %>
++    <%= field_set_tag "Leased", disabled: !@building.leased? do %>
+       <%= form.label :management_phone_number %>
+       <%= form.telephone_field :management_phone_number %>
+     <% end %>
+
+-    <%= field_set_tag "Other" do %>
++    <%= field_set_tag "Other", disabled: !@building.other? do %>
+       <%= form.label :building_type_description %>
+       <%= form.text_field :building_type_description %>
+     <% end %>
+```
+
+Next, we can control whether or not the `<fieldset>` element is visible based on
+whether or not it matches the [:disabled][] pseudo-class:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+-    <%= field_set_tag "Leased", disabled: !@building.leased? do %>
++    <%= field_set_tag "Leased", disabled: !@building.leased?, class: "disabled:hidden" do %>
+       <%= form.label :management_phone_number %>
+       <%= form.telephone_field :management_phone_number %>
+     <% end %>
+
+-    <%= field_set_tag "Other", disabled: !@building.other? do %>
++    <%= field_set_tag "Other", disabled: !@building.other?, class: "disabled:hidden" do %>
+       <%= form.label :building_type_description %>
+       <%= form.text_field :building_type_description %>
+     <% end %>
+```
+
+Like the pairing of the "Country" and "State" `<select>` elements, this poses an
+opportunity for the interface to grow out of synchronization. We can present the
+end-user with a "Select type" button, similar to the "Select country" button
+we're rendering earlier in the page:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+     <%= field_set_tag "Describe the building" do %>
+       <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
+         <span>
+           <%= builder.radio_button %>
+           <%= builder.label %>
+         </span>
+       <% end %>
++      <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
+     <% end %>
+```
+
+https://user-images.githubusercontent.com/2575027/148697443-1d406296-85a0-41d8-b8d0-f6fd1a3c9c54.mov
+
+Finally, it's important to render the `<input type="radio">` elements with
+[autocomplete="off"][] so that browser-initiated optimizations don't introduce
+inconsistencies between the initial client-side selection and the
+server-rendered selection:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+@@ -7,18 +7,19 @@
+     <%= field_set_tag "Describe the building" do %>
+       <%= form.collection_radio_buttons :building_type, Building.building_types.keys, :to_s, :humanize do |builder| %>
+         <span>
+-          <%= builder.radio_button %>
++          <%= builder.radio_button autocomplete: "off" %>
+           <%= builder.label %>
+         </span>
+       <% end %>
+       <button formmethod="get" formaction="<%= new_building_path %>">Select type</button>
+     <% end %>
+```
+
+[fieldset-disabled]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/fieldset#attr-disabled
+[:disabled]: https://developer.mozilla.org/en-US/docs/Web/CSS/:disabled
+[autocomplete="off"]: https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete#values
