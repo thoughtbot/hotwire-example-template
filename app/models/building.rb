@@ -29,4 +29,8 @@ class Building < ApplicationRecord
   def state_name
     states[state]
   end
+
+  def estimated_arrival_on
+    countries.keys.index(country).days.from_now
+  end
 end

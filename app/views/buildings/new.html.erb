@@ -59,11 +59,14 @@
           <%= form.label :state %>
           <%= form.select :state, @building.states.invert %>
         <% end %>
+        <%= turbo_stream.replace dom_id(@building), partial: "buildings/building", object: @building %>
       </turbo-frame>
 
       <%= form.label :postal_code %>
       <%= form.text_field :postal_code %>
     <% end %>
+
+    <%= render partial: "buildings/building", object: @building %>
 
     <%= form.button %>
   <% end %>
