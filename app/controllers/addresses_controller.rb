@@ -1,6 +1,6 @@
 class AddressesController < ApplicationController
   def new
-    @address = Address.new
+    @address = Address.new address_params
   end
 
   def create
@@ -20,7 +20,7 @@ class AddressesController < ApplicationController
   private
 
   def address_params
-    params.require(:address).permit(
+    params.fetch(:address, {}).permit(
       :country,
       :line_1,
       :line_2,
