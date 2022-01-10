@@ -656,3 +656,130 @@ the rest of the client-side state. For example, the "Country" `<select>` element
 _retains_ focus throughout the interaction:
 
 https://user-images.githubusercontent.com/2575027/151675812-c7364d49-a250-4247-a625-922b4c3bd708.mov
+
+### Refining the request
+
+Like we covered above, this form's URL encoded data is unlikely to exceed the
+2,000 character limit, so our implementation is "Good Enough" for our sample
+case. With that being said, it might not be "Good Enough" for yours.
+
+To demonstrate other possibilities, let's refine to the `<form>` submission
+mechanism. We'll replace the `<button>` element with an `<a>` element and retain
+the `[data-element-target]` and `[hidden]` attributes. Next, we'll transform the
+`[formaction]` attribute into an [`[href]`][href] attribute, and omit the
+`[formmethod]` attribute entirely:
+
+[href]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-href
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+-      <button formmethod="get" formaction="<%= new_address_path %>" hidden
+-              data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></button>
++      <a href="<%= new_address_path %>" hidden
++              data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></a>
+```
+
+[HTMLAnchorElement][] is the browser-provided class that corresponds to the
+`<a>` element. It manages its `[href]` attribute through a collection of
+URL-inspired properties ([hostname][], [pathname][], [hash][], etc.). We'll
+extend URL that the server-side rendering has already encoded by translating the
+"Country" `<select>` element's name-value pairing into the [search][] property.
+
+[HTMLAnchorElement]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement
+[hostname]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hostname
+[pathname]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/pathname
+[hash]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hash
+[search]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/search
+
+To control which values to encode into the search parameters, we'll add the
+`search-params` identifier to the `<fieldset>` element's list of
+`[data-controller]` tokens, then we'll implement a corresponding controller:
+
+[connect()]: https://stimulus.hotwired.dev/reference/lifecycle-callbacks#connection
+[disconnect()]: https://stimulus.hotwired.dev/reference/lifecycle-callbacks#disconnection
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+-    <fieldset class="contents" data-controller="element">
++    <fieldset class="contents" data-controller="element search-params">
+       <%= form.label :country %>
+       <%= form.select :country, @address.countries.invert, {}, autocomplete: "off",
+                       data: { action: "change->element#click" } %>
+```
+
+When an element declares multiple controller identifiers, their order
+corresponds to the order that their [connect()][] and [disconnect()][] lifecycle
+callbacks fire. Neither our `element` nor our `search-params` controllers
+declare `connect()` or `disconnect()` callbacks, so their declaration order is
+not significant.
+
+Next, we'll grant the `search-params` controller access to the `<a>` element by
+declaring the `[data-search-params-target="anchor"]` attribute:
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+       <a href="<%= new_address_path %>" hidden
++              data-search-params-target="anchor"
+               data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></a>
+```
+
+We'll route `change` events dispatched by the `<select>` element to the
+`search-params#encode` action by prepending an action descriptor to the
+`<fieldset>` element's list of `[data-action]` tokens:
+
+```diff
+--- a/app/views/addresses/new.html.erb
++++ b/app/views/addresses/new.html.erb
+     <fieldset class="contents" data-controller="search-params element">
+       <%= form.label :country %>
+       <%= form.select :country, @address.countries.invert, {}, autocomplete: "off",
+-                      data: { action: "change->element#click" } %>
++                      data: { action: "change->search-params#encode change->element#click" } %>
+```
+
+The order of the tokens in the `[data-action="change->search-params#encode
+change->element#click"]` descriptor **is significant**. According to the
+Stimulus documentation for [declaring multiple actions][multiple-actions]:
+
+> When an element has more than one action for the same event, Stimulus invokes
+> the actions from left to right in the order that their descriptors appear.
+
+[multiple-actions]: https://stimulus.hotwired.dev/reference/actions#multiple-actions
+
+In this case, we need `search-params#encode` to precede `element#click` so that
+the name-value pair is encoded into the `[href]` attribute *before* we drive the
+`<turbo-frame>` element.
+
+Finally, we'll implement the `search-params` controller's `encode` action to
+construct an [URLSearchParams][] instance with the `name` and `value` properties
+read from the `change` event's [target][event-target] element, then assign that
+instance to each of the `<a>` elements' [anchor.search][search] properties:
+
+[event-target]: https://developer.mozilla.org/en-US/docs/Web/API/Event/target
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams
+[HTMLAnchorElement.search]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/search
+
+```javascript
+// app/javascript/controllers/search_params_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static targets = [ "anchor" ]
+
+  encode({ target: { name, value } }) {
+    for (const anchor of this.anchorTargets) {
+      anchor.search = new URLSearchParams({ [name]: value })
+    }
+  }
+}
+```
+
+With those changes in place, the `search-param` controller _only_ encodes the
+`<select>` element's name-value pair into the `<a>` element's `[href]` attribute
+(e.g. `/addresses/new?address%5Bcountry%5D=US`). It omits the rest of the form's
+name-value pairings, then defers to the ensuing `element#click` controller
+action to programmatically click the element.
