@@ -33,13 +33,13 @@
     <% end %>
 
     <%= field_set_tag "Address", class: "flex flex-col gap-2" do %>
-      <div class="contents" data-controller="element">
+      <div class="contents" data-controller="search-params element">
         <%= form.label :country %>
         <%= form.select :country, @building.countries.invert, {}, autocomplete: "off",
-                        data: { action: "change->element#click" } %>
+                        data: { action: "change->search-params#encode change->element#click" } %>
 
-        <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden
-               data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>">
+        <a href="<%= new_building_path %>" data-search-params-target="anchor" hidden
+               data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></a>
         <noscript>
           <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
         </noscript>

@@ -787,7 +787,7 @@ Clicking its "click" targets is its one and only behavior:
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static get targets() { return [ "click" ] }
+  static targets = [ "click" ]
 
   click() {
     this.clickTargets.forEach(target => target.click())
@@ -895,3 +895,106 @@ retaining client-side state like which element is focused (in this case, the
 user has scrolled:
 
 https://user-images.githubusercontent.com/2575027/148697719-3c524202-c1dd-4aa9-80d2-215a409d2fd3.mov
+
+Now that we're navigating a fragment of the page, there's an opportunity to
+reduce the amount of data we're encoding into the `GET` request. In our
+example's case, we're unlikely to exceed the URL's 2,000 character limit.
+However, that might not be true for every use case. As an alternative to
+submitting _all_ of the `<form>` element's fields' data to the `<turbo-frame>`,
+we'll introduce a `search-params` controller to only encode the _changed_
+field's data into an `<a>` element's [href][] attribute.
+
+[href]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-href
+
+First, we'll replace the visually hidden `<input type="submit">` with a visually
+hidden `<a>` element, and mark that element with the
+`[data-search-params-target="anchor"]` attribute:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+       <div class="contents" data-controller="element">
+         <%= form.label :country %>
+         <%= form.select :country, @building.countries.invert, {}, autocomplete: "off",
+                         data: { action: "change->element#click" } %>
+
+-        <input type="submit" formmethod="get" formaction="<%= new_building_path %>" hidden
+-               data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>">
++        <a href="<%= new_building_path %>" data-search-params-target="anchor" hidden
++               data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></a>
+         <noscript>
+           <button formmethod="get" formaction="<%= new_building_path %>">Select country</button>
+         </noscript>
+```
+
+In our template, we can add `search-params` to the list of tokens declared on
+our `<div data-controller="element">` element. In this case, the order that the
+tokens are declared is not significant:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+-      <div class="contents" data-controller="element">
++      <div class="contents" data-controller="search-params element">
+         <%= form.label :country %>
+         <%= form.select :country, @building.countries.invert, {}, autocomplete: "off",
+                         data: { action: "change->element#click" } %>
+
+         <a href="<%= new_building_path %>" data-search-params-target="anchor" hidden
+                data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></a>
+```
+
+Next, we'll add a `change->search-params#encode` action routing descriptor to
+the `<select>` element's `[data-action]` attribute:
+
+```diff
+--- a/app/views/buildings/new.html.erb
++++ b/app/views/buildings/new.html.erb
+       <div class="contents" data-controller="search-params element">
+         <%= form.label :country %>
+         <%= form.select :country, @building.countries.invert, {}, autocomplete: "off",
+-                        data: { action: "change->element#click" } %>
++                        data: { action: "change->search-params#encode change->element#click" } %>
+
+         <a href="<%= new_building_path %>" data-search-params-target="anchor" hidden
+                data-element-target="click" data-turbo-frame="<%= form.field_id(:state, :turbo_frame) %>"></a>
+```
+
+The order that the tokens are declared **is significant**. According to the
+Stimulus documentation for [declaring multiple actions][multiple-actions]:
+
+> When an element has more than one action for the same event, Stimulus invokes
+> the actions from left to right in the order that their descriptors appear.
+
+In our case, we need `search-params#encode` to precede `element#click`, so that
+the value is encoded into the `<a href="...">` attribute before we navigate the
+related `<turbo-frame>` element.
+
+[multiple-actions]: https://stimulus.hotwired.dev/reference/actions#multiple-actions
+
+The `search-params` controller's `encode` action transforms the target element's
+`name` and `value` properties into a [URLSearchParams][] instance's key-value
+pair, then assigns it to the [HTMLAnchorElement.search][] property across its
+collection of `anchorTargets`:
+
+[URLSearchParams]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams
+[HTMLAnchorElement.search]: https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/search
+
+```javascript
+// app/javascript/controllers/search_params_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static targets = [ "anchor" ]
+
+  encode({ target: { name, value } }) {
+    for (const anchor of this.anchorTargets) {
+      anchor.search = new URLSearchParams({ [name]: value })
+    }
+  }
+}
+```
+
+With those changes in place, the `<a>` element's `[href]` attribute only encodes
+the pertinent values (e.g. `/buildings/new?building%5Bcountry%5D=US`).
