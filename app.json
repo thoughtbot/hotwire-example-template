@@ -1,0 +1,26 @@
+{
+  "name": "Hotwire Example Template",
+  "repository": "https://github.com/thoughtbot/hotwire-example-template",
+  "success_url": "/",
+  "scripts": {
+    "postdeploy": "bin/rails db:migrate db:fixtures:load"
+  },
+  "env": {
+    "SECRET_TOKEN": {
+      "description": "A secret key for verifying the integrity of signed cookies.",
+      "generator": "secret"
+    },
+    "RAILS_MAX_THREADS": {
+      "description": "The number of threads to run.",
+      "value": "5"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "image": "heroku/ruby",
+  "addons": ["heroku-postgresql"]
+}
