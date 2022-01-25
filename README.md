@@ -3,6 +3,10 @@
 A collection of branches that transmit [HTML over the
 wire](https://hotwired.dev).
 
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.png)][heroku-deploy-app]
+
+[heroku-deploy-app]: https://heroku.com/deploy?template=https://github.com/thoughtbot/hotwire-example-template/tree/main
+
 ## How to read this repository
 
 Through the power of incremental Git diffs, each of this repository's
