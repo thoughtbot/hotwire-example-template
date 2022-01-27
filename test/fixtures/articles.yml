@@ -1,0 +1,4 @@
+hello_world:
+  name: Hello, world
+  byline: Alice
+  published_on: <%= 1.day.ago %>

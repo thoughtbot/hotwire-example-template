@@ -1,0 +1,28 @@
+<%= form_with model: @article, class: "grid gap-2 max-w-prose m-auto" do |form| %>
+  <%= link_to "Back", article_path(@article) %>
+
+  <%= form.label :name %>
+  <%= form.text_field :name %>
+
+  <%= form.label :byline %>
+  <%= form.text_field :byline %>
+
+  <%= form.label :published_on %>
+  <%= form.date_field :published_on %>
+
+  <fieldset>
+    <legend>
+      <%= @article.class.human_attribute_name(:category_ids) %>
+    </legend>
+
+    <%= form.collection_check_boxes :category_ids, Category.all, :id, :name do |builder| %>
+      <%= builder.check_box %>
+      <%= builder.label %>
+    <% end %>
+  </fieldset>
+
+  <%= form.label :content %>
+  <%= form.rich_text_area :content %>
+
+  <%= form.button %>
+<% end %>

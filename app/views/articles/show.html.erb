@@ -1,0 +1,23 @@
+<section class="grid gap-2 max-w-prose m-auto">
+  <%= link_to "Edit Article", edit_article_path(@article) %>
+
+  <h1><%= @article.name %></h1>
+
+  <span>By: <%= @article.byline %></span>
+
+  <% if @article.published_on.nil? %>
+    <span>(Unpublished)</span>
+  <% else %>
+    <%= localize @article.published_on, format: :long %>
+  <% end %>
+
+  <strong>Categories</strong>
+
+  <span>
+    <% @article.categories.each do |category| %>
+      <span><%= category.name %></span>
+    <% end %>
+  </span>
+
+  <%= @article.content %>
+</section>

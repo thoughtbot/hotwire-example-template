@@ -1,0 +1,11 @@
+hotwire:
+  name: $LABEL
+
+rails:
+  name: $LABEL
+
+stimulus:
+  name: $LABEL
+
+turbo:
+  name: $LABEL

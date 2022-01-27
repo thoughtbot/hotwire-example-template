@@ -1,0 +1,11 @@
+hello_world_hotwire:
+  article: hello_world
+  category: hotwire
+
+hello_world_rails:
+  article: hello_world
+  category: rails
+
+hello_world_turbo:
+  article: hello_world
+  category: turbo
