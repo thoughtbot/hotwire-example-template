@@ -68,6 +68,20 @@ class ArticlesTest < ApplicationSystemTestCase
     end
   end
 
+  test "supports inline editing the Name" do
+    article = articles :hello_world
+
+    visit article_path(article)
+    within_section article.name do
+      click_on("Edit Name").then { click_on "Cancel" }
+      click_on("Edit Name").then { fill_in "Name", with: "" }
+      click_on("Save Name").then { fill_in "Name", with: "Goodbye, world" }
+      click_on "Save Name"
+    end
+
+    assert_selector :section, "Goodbye, world"
+  end
+
   def within_section(*arguments, section_element: :section, **options, &block)
     within :section, *arguments, section_element:, **options, &block
   end
