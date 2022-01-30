@@ -413,3 +413,70 @@ of Tailwind's [`group:` variant][group] to achieve the same result:
 +    <turbo-frame id="<%= frame_id %>" class="contents group inline-edit">
        <h1><%= @article.name %></h1>
 ```
+
+## Extracting and abstracting: view partials
+
+```erb
+<%# app/views/articles/_inline_edit.html.erb %>
+
+<% frame_id = dom_id(model, "#{method}_turbo_frame") %>
+
+<%= form_with model: model, data: { turbo_frame: frame_id } do %>
+  <turbo-frame id="<%= frame_id %>" class="contents group inline-edit">
+    <%= yield %>
+
+    <%= link_to edit_article_path(model) do %>
+      Edit <%= model.class.human_attribute_name(method) %>
+    <% end %>
+  </turbo-frame>
+<% end %>
+```
+
+```diff
+--- a/app/views/articles/show.html.erb
++++ b/app/views/articles/show.html.erb
+-  <% frame_id = dom_id(@article, "name_turbo_frame") %>
+-
+-  <%= form_with model: @article, class: "contents", data: { turbo_frame: frame_id } do %>
+-    <turbo-frame id="<%= frame_id %>" class="contents group inline-edit">
++  <%= render "inline_edit", model: @article, method: :name do %>
+     <h1><%= @article.name %></h1>
+-
+-      <%= link_to edit_article_path(@article) do %>
+-        Edit <%= @article.class.human_attribute_name(:name) %>
+-      <% end %>
+-    </turbo-frame>
+   <% end %>
+```
+
+```erb
+<%# app/views/articles/_inline_fields.html.erb %>
+
+<% frame_id = dom_id(form.object, "#{method}_turbo_frame") %>
+
+<turbo-frame id="<%= frame_id %>" class="contents">
+  <%= yield %>
+
+  <%= form.button class: "hidden group-inline-edit:inline" do %>
+    Save <%= form.object.class.human_attribute_name(method) %>
+  <% end %>
+  <%= link_to "Cancel", article_path(form.object), class: "hidden group-inline-edit:inline" %>
+</turbo-frame>
+```
+
+```diff
+--- a/app/views/articles/edit.html.erb
++++ b/app/views/articles/edit.html.erb
+-  <% frame_id = dom_id(@article, "name_turbo_frame") %>
+-
+-  <turbo-frame id="<%= frame_id %>" class="contents">
++  <%= render "inline_fields", form: form, method: :name do %>
+     <%= form.label :name %>
+     <%= form.text_field :name %>
+-
+-    <%= form.button class: "hidden group-inline-edit:inline" do %>
+-      Save <%= @article.class.human_attribute_name(:name) %>
+   <% end %>
+-    <%= link_to "Cancel", article_path(@article), class: "hidden group-inline-edit:inline" %>
+-  </turbo-frame>
+```

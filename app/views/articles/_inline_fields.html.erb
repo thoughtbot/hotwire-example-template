@@ -1,0 +1,10 @@
+<% frame_id = dom_id(form.object, "#{method}_turbo_frame") %>
+
+<turbo-frame id="<%= frame_id %>" class="contents">
+  <%= yield %>
+
+  <%= form.button class: "hidden group-inline-edit:inline" do %>
+    Save <%= form.object.class.human_attribute_name(method) %>
+  <% end %>
+  <%= link_to "Cancel", article_path(form.object), class: "hidden group-inline-edit:inline" %>
+</turbo-frame>

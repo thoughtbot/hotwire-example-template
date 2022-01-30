@@ -1,0 +1,11 @@
+<% frame_id = dom_id(model, "#{method}_turbo_frame") %>
+
+<%= form_with model: model, class: "contents", data: { turbo_frame: frame_id } do %>
+  <turbo-frame id="<%= frame_id %>" class="contents group inline-edit">
+    <%= yield %>
+
+    <%= link_to edit_article_path(model) do %>
+      Edit <%= model.class.human_attribute_name(method) %>
+    <% end %>
+  </turbo-frame>
+<% end %>
