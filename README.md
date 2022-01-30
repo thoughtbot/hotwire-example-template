@@ -555,3 +555,37 @@ fields:
      <%= form.rich_text_area :content %>
 +  <% end %>
 ```
+
+## Wrapping up
+
+The partials are nested within the `app/views/articles` directory, and make use
+of `Article`-specific routing helpers. If we wanted to generalize this pattern
+to work with other models, we could declare them within `app/views/application`,
+and use the [polymorphic][polymorphic-helpers] variations of the `article_path`
+and `edit_article_path` route helpers:
+
+[polymorphic-helpers]: https://edgeapi.rubyonrails.org/classes/ActionDispatch/Routing/PolymorphicRoutes.html
+
+```diff
+--- a/app/views/articles/_inline_edit.html.erb
++++ b/app/views/application/_inline_edit.html.erb
+   <turbo-frame id="<%= frame_id %>" class="contents group inline-edit">
+     <%= yield %>
+
+-    <%= link_to edit_article_path(model) do %>
++    <%= link_to edit_polymorphic_path(model) do %>
+       Edit <%= model.class.human_attribute_name(method) %>
+     <% end %>
+   </turbo-frame>
+```
+
+```diff
+--- a/app/views/articles/_inline_fields.html.erb
++++ b/app/views/application/_inline_fields.html.erb
+   <%= form.button class: "hidden group-inline-edit:inline" do %>
+     Save <%= form.object.class.human_attribute_name(method) %>
+   <% end %>
+-  <%= link_to "Cancel", article_path(form.object), class: "hidden group-inline-edit:inline" %>
++  <%= link_to "Cancel", polymorphic_path(form.object), class: "hidden group-inline-edit:inline" %>
+ </turbo-frame>
+```

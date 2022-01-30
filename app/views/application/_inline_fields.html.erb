@@ -6,5 +6,5 @@
   <%= form.button class: "hidden group-inline-edit:inline" do %>
     Save <%= form.object.class.human_attribute_name(method) %>
   <% end %>
-  <%= link_to "Cancel", article_path(form.object), class: "hidden group-inline-edit:inline" %>
+  <%= link_to "Cancel", polymorphic_path(form.object), class: "hidden group-inline-edit:inline" %>
 </turbo-frame>
