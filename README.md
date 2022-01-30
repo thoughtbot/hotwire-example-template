@@ -480,3 +480,78 @@ of Tailwind's [`group:` variant][group] to achieve the same result:
 -    <%= link_to "Cancel", article_path(@article), class: "hidden group-inline-edit:inline" %>
 -  </turbo-frame>
 ```
+
+## Editing the other fields
+
+With our re-usable view partials, we can wrap the rest of the
+`app/views/articles/show.html.erb` template's content in calls to render the
+`inline_edit` view partial, passing along the `@article` reference and the name
+of the method that backs the block's content:
+
+```diff
+--- a/app/views/articles/show.html.erb
++++ b/app/views/articles/show.html.erb
++  <%= render "inline_edit", model: @article, method: :byline do %>
+     <span>By: <%= @article.byline %></span>
++  <% end %>
+
++  <%= render "inline_edit", model: @article, method: :published_on do %>
+     <% if @article.published_on.nil? %>
+       <span>(Unpublished)</span>
+     <% else %>
+       <%= localize @article.published_on, format: :long %>
+     <% end %>
++  <% end %>
+
++  <%= render "inline_edit", model: @article, method: :category_ids do %>
+     <strong>Categories</strong>
+
+     <span>
+       <% @article.categories.each do |category| %>
+         <span><%= category.name %></span>
+       <% end %>
+     </span>
++  <% end %>
+
++  <%= render "inline_edit", model: @article, method: :content do %>
+     <%= @article.content %>
++  <% end %>
+ </section>
+```
+
+Next, we'll wrap the corresponding content in the
+`app/views/articles/edit.html.erb` template, making sure to assign the `[form]`
+attribute by passing along the `form: form.id` option to calls to render form
+fields:
+
+```diff
+--- a/app/views/articles/edit.html.erb
++++ b/app/views/articles/edit.html.erb
++  <%= render "inline_fields", form: form, method: :byline do %>
+     <%= form.label :byline %>
+     <%= form.text_field :byline %>
++  <% end %>
+
++  <%= render "inline_fields", form: form, method: :published_on do %>
+     <%= form.label :published_on %>
+     <%= form.date_field :published_on %>
++  <% end %>
+
++  <%= render "inline_fields", form: form, method: :category_ids do %>
+     <fieldset>
+       <legend>
+         <%= @article.class.human_attribute_name(:category_ids) %>
+       </legend>
+
+       <%= form.collection_check_boxes :category_ids, Category.all, :id, :name do |builder| %>
+         <%= builder.check_box %>
+         <%= builder.label %>
+       <% end %>
+     </fieldset>
++  <% end %>
+
++  <%= render "inline_fields", form: form, method: :content do %>
+     <%= form.label :content %>
+     <%= form.rich_text_area :content %>
++  <% end %>
+```

@@ -6,25 +6,33 @@
     <%= form.text_field :name %>
   <% end %>
 
-  <%= form.label :byline %>
-  <%= form.text_field :byline %>
+  <%= render "inline_fields", form: form, method: :byline do %>
+    <%= form.label :byline %>
+    <%= form.text_field :byline %>
+  <% end %>
 
-  <%= form.label :published_on %>
-  <%= form.date_field :published_on %>
+  <%= render "inline_fields", form: form, method: :published_on do %>
+    <%= form.label :published_on %>
+    <%= form.date_field :published_on %>
+  <% end %>
 
-  <fieldset>
-    <legend>
-      <%= @article.class.human_attribute_name(:category_ids) %>
-    </legend>
+  <%= render "inline_fields", form: form, method: :category_ids do %>
+    <fieldset>
+      <legend>
+        <%= @article.class.human_attribute_name(:category_ids) %>
+      </legend>
 
-    <%= form.collection_check_boxes :category_ids, Category.all, :id, :name do |builder| %>
-      <%= builder.check_box %>
-      <%= builder.label %>
-    <% end %>
-  </fieldset>
+      <%= form.collection_check_boxes :category_ids, Category.all, :id, :name do |builder| %>
+        <%= builder.check_box %>
+        <%= builder.label %>
+      <% end %>
+    </fieldset>
+  <% end %>
 
-  <%= form.label :content %>
-  <%= form.rich_text_area :content %>
+  <%= render "inline_fields", form: form, method: :content do %>
+    <%= form.label :content %>
+    <%= form.rich_text_area :content %>
+  <% end %>
 
   <%= form.button %>
 <% end %>

@@ -92,6 +92,78 @@ class ArticlesTest < ApplicationSystemTestCase
     assert_selector :section, "Goodbye, world"
   end
 
+  test "supports inline editing the Published on" do
+    article = articles :hello_world
+
+    travel_to "2022-01-01" do
+      visit article_path(article)
+      within_section article.name do
+        click_on("Edit Published on").then { click_on "Cancel" }
+        click_on("Edit Published on").then { fill_in "Published on", with: "01/01/2022" }
+        click_on "Save Published on"
+      end
+    end
+
+    within_section article.name do
+      assert_text "January 01, 2022"
+    end
+  end
+
+  test "supports inline editing the Categories" do
+    article = articles :hello_world
+    hotwire, rails, stimulus, turbo = categories :hotwire, :rails, :stimulus, :turbo
+
+    visit article_path(article)
+    within_section article.name do
+      click_on("Edit Categories").then { click_on "Cancel" }
+      click_on "Edit Categories"
+      within :fieldset, "Categories" do
+        uncheck hotwire.name
+        uncheck rails.name
+        check stimulus.name
+        uncheck turbo.name
+      end
+      click_on "Save Categories"
+    end
+
+    within_section article.name do
+      assert_no_text hotwire.name
+      assert_no_text rails.name
+      assert_text stimulus.name
+      assert_no_text turbo.name
+    end
+  end
+
+  test "supports inline editing the Byline" do
+    article = articles :hello_world
+
+    visit article_path(article)
+    within_section article.name do
+      click_on("Edit Byline").then              { click_on "Cancel" }
+      click_on("Edit Byline").then              { fill_in "Byline", with: "" }
+      fill_in("Byline", with: "Anonymous").then { click_on "Save Byline" }
+    end
+
+    within_section article.name do
+      assert_text "Anonymous"
+    end
+  end
+
+  test "supports inline editing the Content" do
+    article = articles :hello_world
+
+    visit article_path(article)
+    within_section article.name do
+      click_on("Edit Content").then                                 { click_on "Cancel" }
+      click_on("Edit Content").then                                 { fill_in_rich_text_area "Content", with: "" }
+      fill_in_rich_text_area("Content", with: "Some content").then  { click_on "Save Content" }
+    end
+
+    within_section article.name do
+      assert_text "Some content"
+    end
+  end
+
   def within_section(*arguments, section_element: :section, **options, &block)
     within :section, *arguments, section_element:, **options, &block
   end
