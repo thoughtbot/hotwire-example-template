@@ -4,7 +4,7 @@
   <% frame_id = dom_id(@article, "name_turbo_frame") %>
 
   <%= form_with model: @article, class: "contents", data: { turbo_frame: frame_id } do %>
-    <turbo-frame id="<%= frame_id %>" class="contents">
+    <turbo-frame id="<%= frame_id %>" class="contents group inline-edit">
       <h1><%= @article.name %></h1>
 
       <%= link_to edit_article_path(@article) do %>

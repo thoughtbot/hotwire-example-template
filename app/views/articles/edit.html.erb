@@ -7,10 +7,10 @@
     <%= form.label :name %>
     <%= form.text_field :name %>
 
-    <%= form.button do %>
+    <%= form.button class: "hidden group-inline-edit:inline" do %>
       Save <%= @article.class.human_attribute_name(:name) %>
     <% end %>
-    <%= link_to "Cancel", article_path(@article) %>
+    <%= link_to "Cancel", article_path(@article), class: "hidden group-inline-edit:inline" %>
   </turbo-frame>
 
   <%= form.label :byline %>

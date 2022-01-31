@@ -341,3 +341,75 @@ attribute:
 ```
 
 https://user-images.githubusercontent.com/2575027/151736170-938f0552-1546-41b5-a5cf-7d15fde0024f.mov
+
+### Hiding inline actions
+
+While it's crucial to present the "Save" and "Cancel" actions when they're
+loaded into the `app/views/articles/show.html.erb` page's `<turbo-frame>`
+element, it's as important to hide them when they're rendered as part of the
+`app/views/articles/edit.html.erb` template.
+
+If our application were styled in more traditional CSS manner, we'd control
+their visibility with cascading CSS rules. For example, consider these two CSS
+classes:
+
+```css
+             .inline-action { display: none; }
+.inline-edit .inline-action { display: initial; }
+```
+
+By default, the actions would be hidden. The precedence of the combined
+`.inline-edit .inline-action` rule would outweigh the `.inline-action` rule, so
+nesting the actions within an `.inline-edit` element would reveal them. We'd
+mark the `<turbo-frame>` element (rendered in the
+`app/views/articles/show.html.erb` template) with the `.inline-edit` class and
+mark the "Cancel" `<a>` element and "Save" `<button>` (rendered in the
+`app/views/articles/edit.html.erb` template) with the `.inline-action` class.
+
+Since our sample code styles its elements with Tailwind's [utility-first][tw]
+classes, there's an opportunity to introduce a [custom variant][] in the style
+of Tailwind's [`group:` variant][group] to achieve the same result:
+
+[tw]: https://tailwindcss.com/docs/utility-first
+[custom variant]: https://v2.tailwindcss.com/docs/plugins#adding-variants
+[group]: https://tailwindcss.com/docs/hover-focus-and-other-states#styling-based-on-parent-state
+
+```diff
+--- a/app/javascript/tailwind.config.js
++++ b/app/javascript/tailwind.config.js
+ tailwind.config = {
+   corePlugins: {
+     preflight: false,
+-  }
++  },
++  plugins: [
++    tailwind.plugin(function({ addVariant }) {
++      addVariant("group-inline-edit", ".group.inline-edit &")
++    })
++  ]
+ }
+```
+
+```diff
+--- a/app/views/articles/edit.html.erb
++++ b/app/views/articles/edit.html.erb
+     <%= form.label :name %>
+     <%= form.text_field :name %>
+
+-    <%= form.button do %>
++    <%= form.button class: "hidden group-inline-edit:inline" do %>
+       Save <%= @article.class.human_attribute_name(:name) %>
+     <% end %>
+-    <%= link_to "Cancel", article_path(@article) %>
++    <%= link_to "Cancel", article_path(@article), class: "hidden group-inline-edit:inline" %>
+   </turbo-frame>
+```
+
+```diff
+--- a/app/views/articles/show.html.erb
++++ b/app/views/articles/show.html.erb
+   <%= form_with model: @article, class: "contents", data: { turbo_frame: frame_id } do %>
+-    <turbo-frame id="<%= frame_id %>" class="contents">
++    <turbo-frame id="<%= frame_id %>" class="contents group inline-edit">
+       <h1><%= @article.name %></h1>
+```

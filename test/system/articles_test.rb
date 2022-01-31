@@ -68,6 +68,16 @@ class ArticlesTest < ApplicationSystemTestCase
     end
   end
 
+  test "edit page does not include inline edit actions" do
+    article = articles :hello_world
+
+    visit edit_article_path(article)
+
+    assert_button "Update Article", count: 1
+    assert_no_button "Save"
+    assert_no_link "Cancel"
+  end
+
   test "supports inline editing the Name" do
     article = articles :hello_world
 
