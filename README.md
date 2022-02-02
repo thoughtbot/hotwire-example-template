@@ -598,7 +598,7 @@ text/html, application/xhtml+xml`][Accept] HTTP header, and expects an HTML
 document in its response. When the frame receives a response, it scans the new
 document for a `<turbo-frame>` element that declares an [`[id]`][id] attribute
 matching its own `[id]`. When a matching frame is found, the element replaces
-extracts the matching frame's contents, and uses the extracted fragment to
+the matching frame's contents, and uses the extracted fragment to
 replace its own contents. The rest of the response is discarded.
 
 Throughout the frame's navigation, the browser retains any client-side context
@@ -879,7 +879,7 @@ the `app/views/addresses/_address.html.erb` partial, we can call the
      </turbo-frame>
 ```
 
-With that change in place, navigating the `<turbo-frame>` element will replaces
+With that change in place, navigating the `<turbo-frame>` element replaces
 the list of "State" options _and_ replaces the "Estimated arrival" text
 elsewhere in the document, all without discarding other client-side state like
 focus or scroll:
