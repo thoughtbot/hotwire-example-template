@@ -10,42 +10,46 @@
 <fieldset>
   <legend>Personal references</legend>
 
-  <ol>
-    <% form.object.references.each_with_index do |reference, index| %>
-      <%= form.fields :references_attributes, model: reference, index: index do |reference_form| %>
-        <li <%= "hidden" if reference_form.object.marked_for_destruction? %> class="mt-2">
-          <div class="grid gap-2">
-            <%= reference_form.hidden_field :id %>
-            <%= reference_form.hidden_field :_destroy %>
+  <turbo-frame id="<%= form.field_id(:references_attributes) %>">
+    <ol>
+      <% form.object.references.each_with_index do |reference, index| %>
+        <%= form.fields :references_attributes, model: reference, index: index do |reference_form| %>
+          <li <%= "hidden" if reference_form.object.marked_for_destruction? %> class="mt-2">
+            <div class="grid gap-2">
+              <%= reference_form.hidden_field :id %>
+              <%= reference_form.hidden_field :_destroy %>
 
-            <%= reference_form.label :name %>
-            <%= reference_form.text_field :name %>
+              <%= reference_form.label :name %>
+              <%= reference_form.text_field :name %>
 
-            <%= reference_form.label :email_address %>
-            <%= reference_form.email_field :email_address %>
+              <%= reference_form.label :email_address %>
+              <%= reference_form.email_field :email_address %>
 
-            <%= reference_form.button :_destroy, value: true,
-                                                 formaction: reference_form.object.applicant.persisted? ?
-                                                   edit_applicant_path(reference_form.object.applicant) :
-                                                   new_applicant_path,
-                                                 formmethod: "get" do %>
-              Destroy
-            <% end %>
-          </div>
-        </li>
+              <%= reference_form.button :_destroy, value: true,
+                                                   formaction: reference_form.object.applicant.persisted? ?
+                                                     edit_applicant_path(reference_form.object.applicant) :
+                                                     new_applicant_path,
+                                                   formmethod: "get",
+                                                   data: { turbo_frame: form.field_id(:references_attributes) } do %>
+                Destroy
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      <% end %>
+    </ol>
+
+    <%= form.fields :references_attributes, index: form.object.references.size do |reference_form| %>
+      <%= reference_form.button :_destroy, value: false,
+                                           formaction: form.object.new_record? ?
+                                             new_applicant_path :
+                                             edit_applicant_path(form.object),
+                                           formmethod: "get",
+                                           data: { turbo_frame: form.field_id(:references_attributes) } do %>
+        Add personal reference
       <% end %>
     <% end %>
-  </ol>
-
-  <%= form.fields :references_attributes, index: form.object.references.size do |reference_form| %>
-    <%= reference_form.button :_destroy, value: false,
-                                         formaction: form.object.persisted? ?
-                                           edit_applicant_path(form.object) :
-                                           new_applicant_path,
-                                         formmethod: "get" do %>
-      Add personal reference
-    <% end %>
-  <% end %>
+  </turbo-frame>
 </fieldset>
 
 <%= form.button %>

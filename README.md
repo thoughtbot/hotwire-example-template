@@ -268,3 +268,63 @@ https://user-images.githubusercontent.com/2575027/152659647-b2e021f2-5f6f-4384-9
 ```
 
 https://user-images.githubusercontent.com/2575027/152659594-e3c00c6a-d9d6-46d3-a460-fba1b9777d06.mov
+
+## Enhancing with a Turbo Frame
+
+```diff
+diff --git a/app/views/applicants/_form.html.erb b/app/views/applicants/_form.html.erb
+index dd81aa4..92ed3a6 100644
+--- a/app/views/applicants/_form.html.erb
++++ b/app/views/applicants/_form.html.erb
+@@ -8,6 +8,7 @@
+ <fieldset>
+   <legend>Personal references</legend>
+
++  <turbo-frame id="<%= form.field_id(:references_attributes) %>">
+     <ol>
+       <% form.object.references.each_with_index do |reference, index| %>
+         <%= form.fields :references_attributes, model: reference, index: index do |reference_form| %>
+           <li <%= "hidden" if reference_form.object.marked_for_destruction? %>>
+             <div class="grid gap-2">
+               <%= reference_form.hidden_field :id %>
+               <%= reference_form.hidden_field :_destroy %>
+
+               <%= reference_form.label :name %>
+               <%= reference_form.text_field :name %>
+
+               <%= reference_form.label :email_address %>
+               <%= reference_form.email_field :email_address %>
+
+               <%= reference_form.button :_destroy, value: true,
+                                                    formaction: reference_form.object.applicant.persisted? ?
+                                                      edit_applicant_path(reference_form.object.applicant) :
+                                                      new_applicant_path,
+-                                                   formmethod: "get" do %>
++                                                   formmethod: "get",
++                                                   data: { turbo_frame: form.field_id(:references_attributes) } do %>
+                 Destroy
+               <% end %>
+             </div>
+           </li>
+         <% end %>
+       <% end %>
+     </ol>
+
+     <%= form.fields :references_attributes, index: form.object.references.size do |reference_form| %>
+       <%= reference_form.button :_destroy, value: false,
+                                                     formaction: form.object.new_record? ?
+                                                                   new_applicant_path :
+                                                                   edit_applicant_path(form.object),
+-                                                    formmethod: "get" do %>
++                                                    formmethod: "get",
++                                                    data: { turbo_frame: form.field_id(:references_attributes) } do %>
+         Add personal reference
+       <% end %>
+     <% end %>
++  </turbo-frame>
+ </fieldset>
+
+ <%= form.button %>
+```
+
+https://user-images.githubusercontent.com/2575027/152659647-b2e021f2-5f6f-4384-924c-2660a5d00e37.mov

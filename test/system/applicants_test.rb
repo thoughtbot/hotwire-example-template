@@ -70,13 +70,13 @@ class ApplicantsTest < ApplicationSystemTestCase
     visit new_applicant_path
     send_keys(:tab).then { send_keys "Bob" }
     send_keys(:tab).then { send_keys :enter }
-    assert_no_button(focused: true).then { send_keys :tab }
+    assert_no_button(focused: true)
     send_keys(:tab).then { send_keys "Enemy" }
     send_keys(:tab).then { send_keys "enemy@example.com" }
     send_keys(:tab).then { send_keys :enter }
-    assert_no_button(focused: true).then { send_keys :tab }
+    assert_no_button(focused: true)
     send_keys(:tab).then { send_keys :enter }
-    assert_no_button(focused: true).then { send_keys :tab }
+    assert_no_button(focused: true)
     send_keys(:tab).then { send_keys "Friend" }
     send_keys(:tab).then { send_keys "friend@example.com" }
     send_keys(:enter)
