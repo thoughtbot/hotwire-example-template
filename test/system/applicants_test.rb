@@ -88,10 +88,8 @@ class ApplicantsTest < ApplicationSystemTestCase
     within :fieldset, "Personal references" do
       check "Destroy"
       click_on "Add personal reference"
-      within "li:nth-of-type(2)" do
-        fill_in "Name", with: ""
-        fill_in "Email address", with: "enemy@example.com"
-      end
+      fill_in "Name", with: ""
+      fill_in "Email address", with: "enemy@example.com"
     end
     click_on "Update Applicant"
 
@@ -112,7 +110,7 @@ class ApplicantsTest < ApplicationSystemTestCase
     4.times { send_keys [ :shift, :tab ] }
     send_keys(:tab).then { send_keys "Enemy" }
     send_keys(:tab).then { send_keys "enemy@example.com" }
-    send_keys(:tab).then { send_keys :space }
+    send_keys(:tab).then { send_keys :space }.then { assert_no_field fieldset: "Personal references" }
     send_keys(:tab).then { send_keys :enter }
     4.times { send_keys [ :shift, :tab ] }
     send_keys(:tab).then { send_keys "Friend" }

@@ -290,3 +290,40 @@ export default class extends Controller {
 ```
 
 https://user-images.githubusercontent.com/2575027/152659893-fe4b4b49-4828-485d-8db3-6a08a2914814.mov
+
+## Removing nested fields
+
+```diff
+--- a/app/views/references/_form.html.erb
++++ b/app/views/references/_form.html.erb
+-<%= tag.li class: "mt-2", hidden: form.object.marked_for_destruction? do %>
++<%= tag.li class: "mt-2", hidden: form.object.marked_for_destruction?,
++           data: { controller: "element" } do %>
+   <div class="grid gap-2">
+     <%= form.hidden_field :id %>
+```
+
+```javascript
+// app/javascript/controllers/element_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  hide() {
+    this.element.hidden = true
+  }
+}
+```
+
+```diff
+--- a/app/views/references/_form.html.erb
++++ b/app/views/references/_form.html.erb
+   <div>
+-    <%= form.check_box :_destroy, data: { action: "input->element#hide" } %>
++    <%= form.check_box :_destroy, data: { action: "input->element#hide" },
++                                  autocomplete: "off" %>
+     <%= form.label :_destroy %>
+   </div>
+```
+
+https://user-images.githubusercontent.com/2575027/152659921-f52ad040-d2d4-4f35-8b15-74964c16cdac.mov

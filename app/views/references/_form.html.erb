@@ -1,4 +1,5 @@
-<%= tag.li class: "mt-2", hidden: form.object.marked_for_destruction? do %>
+<%= tag.li class: "mt-2", hidden: form.object.marked_for_destruction?,
+           data: { controller: "element" } do %>
   <div class="grid gap-2">
     <%= form.hidden_field :id %>
 
@@ -9,7 +10,8 @@
     <%= form.email_field :email_address %>
 
     <div>
-      <%= form.check_box :_destroy %>
+      <%= form.check_box :_destroy, data: { action: "input->element#hide" },
+                                    autocomplete: "off" %>
       <%= form.label :_destroy %>
     </div>
   </div>
