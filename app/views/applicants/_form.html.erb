@@ -8,7 +8,7 @@
 <fieldset>
   <legend>Personal references</legend>
 
-  <ol>
+  <ol id="<%= form.field_id(:references_attributes) %>">
     <% form.object.references.each_with_index do |reference, index| %>
       <%= form.fields :references_attributes, model: reference,
                                               index: index do |reference_form| %>
@@ -17,8 +17,21 @@
     <% end %>
   </ol>
 
-  <button type="button">
+  <button type="button" data-controller="clone template-parts" data-action="click->clone#append"
+                        data-template-parts-key-value="id"
+                        data-template-parts-index-value="<%= form.object.references.size %>">
     Add personal reference
+
+    <template data-clone-target="template">
+      <turbo-stream action="append" target="<%= form.field_id(:references_attributes) %>">
+        <template data-template-parts-target="template">
+          <%= form.fields :references_attributes, model: form.object.references.new,
+                                                  index: "{{id}}" do |reference_form| %>
+            <%= render partial: "references/form", object: reference_form %>
+          <% end %>
+        </template>
+      </turbo-stream>
+    </template>
   </button>
 </fieldset>
 
