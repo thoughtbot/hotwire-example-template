@@ -204,3 +204,46 @@ The `app/views/applicants/_form.html.erb` view partial:
 ```
 
 https://user-images.githubusercontent.com/2575027/152659554-c69dd665-f96c-4a91-a7f2-e39e7d9a7e07.mov
+
+### Handling implicit submissions
+
+> User agents may establish a button in each form as being the form's **default
+> button**. This should be the **first submit button in tree order whose form
+> owner is that form element**, but user agents may pick another button if
+> another would be more appropriate for the platform. If the platform supports
+> letting the user submit a form implicitly (for example, on some platforms
+> hitting the <kbd>enter</kbd> key while a text field is focused implicitly
+> submits the form), then doing so must cause the form's default button's
+> activation behavior, if any, to be run.
+>
+> [4.10.22.2 Implicit submission][implicit submission]
+
+Any time we render a `<button>` element with a `[formaction]` or `[formmethod]`
+attribute, we run the risk of changing the `<form>` element's implicit
+submission mechanism.
+
+In our case, the candidates for **default button** are the "Add personal
+reference" or "Destroy" buttons, since they appear before the "Create Applicant"
+or "Update Applicant" in the document's [tree order][]. This means that if a
+user pressed the <kbd>enter</kbd> key when a field within the "Personal
+reference" fieldset has focus, the browser would click the first "Destroy"
+button on their behalf.
+
+We can exert control over which button is the **default button**, and which
+mechanism handles implicit submissions. We'll declare a `<button>` element as
+the form's first element. The element won't be visible to end-users or assistive
+technology, and won't be able to receive focus:
+
+```diff
+--- a/app/views/applicants/_form.html.erb
++++ b/app/views/applicants/_form.html.erb
++<button class="hidden" tabindex="-1" aria-hidden="true"></button>
++
+ <fieldset>
+   <legend>Applicant</legend>
+```
+
+[implicit submission]: https://dev.w3.org/html5/spec-LC/association-of-controls-and-forms.html#implicit-submission
+[tree order]: https://dev.w3.org/html5/spec-LC/infrastructure.html#tree-order
+
+https://user-images.githubusercontent.com/2575027/152659647-b2e021f2-5f6f-4384-924c-2660a5d00e37.mov
