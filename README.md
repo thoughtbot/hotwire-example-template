@@ -120,4 +120,48 @@ https://user-images.githubusercontent.com/2575027/152660466-a41560a9-a6b6-4438-9
 +</turbo-frame>
 ```
 
+### Replacing Frames with their content
+
+```diff
+--- a/app/views/messages/index.html.erb
++++ b/app/views/messages/index.html.erb
+-    <turbo-frame id="messages_page_<%= @page.prev %>">
++    <turbo-frame id="messages_page_<%= @page.prev %>"
++                 data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
+       <%= link_to pagy_url_for(@page, @page.prev), rel: "prev" do %>
+         Previous page
+       <% end %>
+     </turbo-frame>
+```
+
+```diff
+--- a/app/views/messages/index.html.erb
++++ b/app/views/messages/index.html.erb
+-    <turbo-frame id="messages_page_<%= @page.next %>">
++    <turbo-frame id="messages_page_<%= @page.next %>"
++                 data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
+       <%= link_to pagy_url_for(@page, @page.next), rel: "next" do %>
+         Next page
+       <% end %>
+     </turbo-frame>
+```
+
+```javascript
+// app/javascript/controllers/element_controller.js
+
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  replaceWithChildren({ target }) {
+    this.element.replaceWith(...target.children)
+  }
+}
+```
+
+There is ongoing exploration work ([hotwired/turbo#146][]) to declaratively add
+this behavior directly to `<turbo-frame>` elements through the
+`[rendering="replace"]` attribute.
+
+[hotwired/turbo#146]: https://github.com/hotwired/turbo/pull/146
+
 https://user-images.githubusercontent.com/2575027/152660510-68a9e849-81bc-41a5-a7e0-5d4ca1856556.mov

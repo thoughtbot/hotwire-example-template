@@ -2,7 +2,8 @@
 
 <turbo-frame id="messages_page_<%= @page.page %>" class="grid gap-2" target="_top">
   <% if @page.prev %>
-    <turbo-frame id="messages_page_<%= @page.prev %>">
+    <turbo-frame id="messages_page_<%= @page.prev %>"
+                 data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
       <%= link_to pagy_url_for(@page, @page.prev), rel: "prev" do %>
         Previous page
       <% end %>
@@ -20,7 +21,8 @@
   <% end %>
 
   <% if @page.next %>
-    <turbo-frame id="messages_page_<%= @page.next %>">
+    <turbo-frame id="messages_page_<%= @page.next %>"
+                 data-controller="element" data-action="turbo:frame-render->element#replaceWithChildren">
       <%= link_to pagy_url_for(@page, @page.next), rel: "next" do %>
         Next page
       <% end %>
