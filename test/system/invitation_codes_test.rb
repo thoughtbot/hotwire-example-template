@@ -10,6 +10,8 @@ class InvitationCodesTest < ApplicationSystemTestCase
     send_keys :meta, "v"
 
     assert_field "Invitation code", focused: true, with: code
-    assert_selector :alert, "Copied to clipboard"
+    within(:alert, "Copied to clipboard") { click_on "Dismiss" }
+
+    assert_no_selector :alert, "Copied to clipboard"
   end
 end

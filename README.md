@@ -428,3 +428,56 @@ We'll treat the outer `<template>` element as a `clone` target by marking it
 with the `[data-clone-target="source"]` attribute, and we'll route `click`
 events to a `clone` controller to [append][] the `<template>` element's contents
 to the document whenever the `<button>` element is clicked:
+
+## Removing alerts
+
+```diff
+--- a/app/views/invitation_codes/show.html.erb
++++ b/app/views/invitation_codes/show.html.erb
+     <template data-clone-target="source">
+       <turbo-stream action="append" target="alerts">
+         <template>
+-          <div role="alert" class="border border-solid rounded-md m-4 p-4">
++          <div id="copied_to_clipboard_alert" role="alert" class="border border-solid rounded-md m-4 p-4">
+             Copied to clipboard
++
++            <button type="button"
++                    data-controller="clone"
++                    data-action="click->clone#append">
++              Dismiss
++
++              <template data-clone-target="source">
++                <turbo-stream action="remove" target="copied_to_clipboard_alert"></turbo-stream>
++              </template>
++            </button>
+           </div>
+         </template>
+       </turbo-stream>
+```
+
+## Wrapping up
+
+Experiment with this code in a [JSFiddle][]
+
+[JSFiddle]: https://jsfiddle.net/8amowgL4/1/
+
+As an exercise for the reader, imagine the implications of this pattern in other
+contexts. For example, adding an email address from a [combobox][]-powered list
+of recipients, or removing a `<fieldset>` element of controls from a dynamic
+form.
+
+Included:
+
+* an entirely client-side interaction augmented by server-generated HTML
+* declaratively encoded DOM operations through `<template>` and `<turbo-stream>`
+  elements
+* three general purpose controllers with potential for re-use across the
+  codebase
+
+Excluded:
+
+* parallel alert implementations split across the client-server boundary
+* transforming JSON into HTML
+* `XMLHttpRequest`, `fetch`
+
+[combobox]: https://www.w3.org/TR/wai-aria-practices-1.1/#combobox

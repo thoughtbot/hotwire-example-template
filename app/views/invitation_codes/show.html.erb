@@ -15,8 +15,18 @@
     <template data-clone-target="source">
       <turbo-stream action="append" target="alerts">
         <template>
-          <div role="alert" class="border border-solid rounded-md m-4 p-4">
+          <div id="copied_to_clipboard_alert" role="alert" class="border border-solid rounded-md m-4 p-4">
             Copied to clipboard
+
+            <button type="button"
+                    data-controller="clone"
+                    data-action="click->clone#append">
+              Dismiss
+
+              <template data-clone-target="source">
+                <turbo-stream action="remove" target="copied_to_clipboard_alert"></turbo-stream>
+              </template>
+            </button>
           </div>
         </template>
       </turbo-stream>
