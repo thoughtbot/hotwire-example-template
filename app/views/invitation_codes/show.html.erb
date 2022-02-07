@@ -1,0 +1,26 @@
+<div id="alerts" class="absolute bottom-0 right-0 w-96"></div>
+
+<fieldset>
+  <legend>Copy</legend>
+
+  <label>
+    Invitation code
+
+    <input value="<%= @invitation_code %>" readonly>
+  </label>
+
+  <button type="button" value="<%= @invitation_code %>"
+          data-controller="clipboard"
+          data-action="click->clipboard#copy">
+    Copy to clipboard
+  </button>
+</fieldset>
+
+<fieldset>
+  <legend>Paste</legend>
+
+  <label>
+    Invitation code
+    <input>
+  </label>
+</fieldset>
