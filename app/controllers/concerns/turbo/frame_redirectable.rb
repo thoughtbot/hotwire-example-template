@@ -3,32 +3,23 @@ module Turbo
     extend ActiveSupport::Concern
 
     included do
-      around_action :transform_turbo_frame_param_into_header
+      before_action :transform_turbo_frame_flash_into_header
 
       def redirect_to(options = {}, response_options = {})
-        turbo_frame = response_options.delete(:turbo_frame) { headers["Turbo-Frame"] }
+        turbo_frame = response_options.delete(:turbo_frame) { request.headers["Turbo-Frame"] }
 
         super
 
-        if turbo_frame.present?
-          location_uri = URI(location)
-          location_params = Rack::Utils.parse_query(location_uri.query)
-          location_params.reverse_merge! _turbo_frame: turbo_frame
-          location_uri.query = location_params.to_query
-
-          self.location = location_uri.to_s
-        end
+        flash["Turbo-Frame"] = response.headers["Turbo-Frame"] = turbo_frame
       end
-    end
 
-    private
+      private
 
-    def transform_turbo_frame_param_into_header
-      turbo_frame = params.delete(:_turbo_frame)
+      def transform_turbo_frame_flash_into_header
+        response.headers["Turbo-Frame"] = flash["Turbo-Frame"]
 
-      yield
-
-      headers["Turbo-Frame"] = turbo_frame.presence
+        flash.delete "Turbo-Frame"
+      end
     end
   end
 end
