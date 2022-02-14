@@ -1,0 +1,15 @@
+<% CSV.parse Rails.root.join("test/fixtures/negro_leagues_player_ratings.csv").open, headers: true do |row| %>
+
+<%= row["playerID"] %>: <%= {
+  player_id: row["playerID"],
+  common_name: row["commonName"],
+  league: row["league"],
+  hof: row["hof"],
+  start_year: row["startYear"],
+  end_year: row["endYear"],
+  total_games: row["totalGames"],
+  player_label: row["playerLabel"],
+  position_cat: row["positionCat"],
+  position: row["position"],
+}.to_json %>
+<% end %>
