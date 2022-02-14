@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2022_02_14_193248) do
+ActiveRecord::Schema[7.0].define(version: 2022_02_14_225044) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -52,6 +52,15 @@ ActiveRecord::Schema[7.0].define(version: 2022_02_14_193248) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "draftings", force: :cascade do |t|
+    t.bigint "player_id", null: false
+    t.bigint "team_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["player_id"], name: "index_draftings_on_player_id"
+    t.index ["team_id"], name: "index_draftings_on_team_id"
+  end
+
   create_table "players", force: :cascade do |t|
     t.string "player_id", null: false
     t.string "common_name", null: false
@@ -67,6 +76,14 @@ ActiveRecord::Schema[7.0].define(version: 2022_02_14_193248) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "teams", force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "draftings", "players"
+  add_foreign_key "draftings", "teams"
 end

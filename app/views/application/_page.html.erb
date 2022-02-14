@@ -1,0 +1,13 @@
+<nav class="flex justify-between">
+  <% if page.prev %>
+    <%= link_to pagy_url_for(page, page.prev), rel: "prev" do %>
+      Previous page
+    <% end %>
+  <% end %>
+
+  <% if page.next %>
+    <%= link_to pagy_url_for(page, page.next), rel: "next" do %>
+      Next page
+    <% end %>
+  <% end %>
+</nav>

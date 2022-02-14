@@ -30,4 +30,12 @@
 # available at https://guides.rubyonrails.org/i18n.html.
 
 en:
-  hello: "Hello world"
+  activerecord:
+    attributes:
+      player:
+        player_id: Seamheads.com ID
+        common_name: Name
+        hof: Hall of Fame
+        position: Batter or Pitcher
+        position_cat: Position played
+        player_label: Category

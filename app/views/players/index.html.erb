@@ -1,0 +1,31 @@
+<section class="grid gap-4">
+  <h1>Players</h1>
+
+  <%= render partial: "page", object: @page %>
+
+  <table>
+    <thead>
+      <tr>
+        <% Player.headings.each do |heading| %>
+          <th>
+            <%= Player.human_attribute_name heading.name %>
+          </th>
+        <% end %>
+      </tr>
+    </thead>
+
+    <tbody>
+      <% @players.each do |player| %>
+        <tr>
+          <% Player.headings.each do |heading| %>
+            <td>
+              <%= render partial: heading.type.to_s, object: player[heading.name] %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <%= render partial: "page", object: @page %>
+</section>
