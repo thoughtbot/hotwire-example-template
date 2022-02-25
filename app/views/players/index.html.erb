@@ -3,7 +3,7 @@
 
   <%= render partial: "page", object: @page %>
 
-  <table>
+  <table data-controller="roving-tabstop">
     <thead>
       <tr>
         <% Player.headings.each do |heading| %>
@@ -18,7 +18,7 @@
       <% @players.each do |player| %>
         <tr>
           <% Player.headings.each do |heading| %>
-            <td>
+            <td data-roving-tabstop-target="focusable">
               <%= render partial: heading.type.to_s, object: player[heading.name] %>
             </td>
           <% end %>
