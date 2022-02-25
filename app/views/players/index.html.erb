@@ -3,7 +3,10 @@
 
   <%= render partial: "page", object: @page %>
 
-  <table data-controller="roving-tabstop">
+  <table data-controller="grid"
+         data-grid-directions-value="<%= html_escape({
+           ArrowRight: +1
+         }.to_json) %>">
     <thead>
       <tr>
         <% Player.headings.each do |heading| %>
@@ -18,7 +21,7 @@
       <% @players.each do |player| %>
         <tr>
           <% Player.headings.each do |heading| %>
-            <td data-roving-tabstop-target="focusable">
+            <td data-grid-target="column" data-action="focus->grid#captureColumn keyup->grid#moveColumn">
               <%= render partial: heading.type.to_s, object: player[heading.name] %>
             </td>
           <% end %>
