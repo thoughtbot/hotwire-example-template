@@ -20,6 +20,16 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:right).then { assert_cell first_player.league, focused: true, column: "League" }
   end
 
+  test "Left Arrow: Moves focus one cell to the left." do
+    first_player = players.first
+
+    visit players_path
+    send_keys(:tab)
+    send_keys(:tab).then { assert_cell first_player.common_name, focused: true, column: "Name" }
+    send_keys(:right)
+    send_keys(:left).then { assert_cell first_player.common_name, focused: true, column: "Name" }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end

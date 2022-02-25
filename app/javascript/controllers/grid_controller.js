@@ -2,7 +2,6 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = [ "column" ]
-  static values = { directions: Object, column: Number, row: Number }
 
   columnTargetConnected(target) {
     if (target.hasAttribute("tabindex")) return
@@ -15,25 +14,22 @@ export default class extends Controller {
     target.setAttribute("tabindex", tabindex)
   }
 
-  columnValueChanged(value) {
-    this.columnTargets.forEach((column, index) => {
-      const tabindex = index == value ?
+  captureColumn({ target }) {
+    for (const column of this.columnTargets) {
+      const tabindex = column == target ?
          0 :
         -1
 
       column.setAttribute("tabindex", tabindex)
-    })
+    }
   }
 
-  captureColumn({ target }) {
-    this.columnValue = this.columnTargets.indexOf(target) || 0
-  }
+  moveColumn({ key, params: { directions } }) {
+    if (key in directions) {
+      const index = this.columnTargets.findIndex(target => target.tabIndex > -1)
+      const column = this.columnTargets[index + directions[key]]
 
-  moveColumn({ key }) {
-    if (key in this.directionsValue) {
-      const index = this.columnValue + this.directionsValue[key]
-
-      this.columnTargets[index]?.focus()
+      if (column) column.focus()
     }
   }
 }
