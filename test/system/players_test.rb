@@ -30,6 +30,14 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:left).then { assert_cell first_player.common_name, focused: true, column: "Name" }
   end
 
+  test "Down Arrow: Moves focus one cell down." do
+    first_player, second_player, * = players
+
+    visit players_path
+    2.times { send_keys :tab }.then { assert_cell first_player.common_name, focused: true, column: "Name" }
+    send_keys(:down).then { assert_cell second_player.common_name, focused: true, column: "Name" }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end
