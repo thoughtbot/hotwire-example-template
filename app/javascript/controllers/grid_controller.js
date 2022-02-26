@@ -4,6 +4,10 @@ export default class extends Controller {
   static targets = [ "column", "row" ]
   static values = { column: Number, row: Number }
 
+  connect() {
+    this.element.setAttribute("role", "grid")
+  }
+
   columnTargetConnected(target) {
     if (target.hasAttribute("tabindex")) return
 
