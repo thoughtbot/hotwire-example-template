@@ -16,10 +16,10 @@
 
     <tbody>
       <% @players.each do |player| %>
-        <tr data-grid-target="row" data-action="keyup->grid#moveRow"
-            data-grid-directions-param="<%= html_escape({ ArrowDown: +1 }.to_json) %>">
+        <tr data-grid-target="row" data-action="keydown->grid#moveRow"
+            data-grid-directions-param="<%= html_escape({ ArrowDown: +1, ArrowUp: -1 }.to_json) %>">
           <% Player.headings.each do |heading| %>
-            <td data-grid-target="column" data-action="focus->grid#captureFocus keyup->grid#moveColumn"
+            <td data-grid-target="column" data-action="focus->grid#captureFocus keydown->grid#moveColumn"
                 data-grid-directions-param="<%= html_escape({ ArrowRight: +1, ArrowLeft: -1 }.to_json) %>">
               <%= render partial: heading.type.to_s, object: player[heading.name] %>
             </td>
