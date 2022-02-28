@@ -104,6 +104,17 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:up). then { assert_cell penultimate_player.common_name, focused: true, column: "Name"  }
   end
 
+  test "Page Up: Moves focus up an author-determined number of rows" do
+    tenth_player = players.take(10).last
+    ultimate_player = players.take(Pagy::DEFAULT[:items]).last
+
+    visit players_path
+    2.times { send_keys :tab }.then { assert_cell focused: true, column: "Name" }
+    send_keys([:control, :end]).then { assert_cell ultimate_player.position, focused: true, column: "Batter or Pitcher" }
+    send_keys(:home).then { assert_cell ultimate_player.common_name, focused: true, column: "Name" }
+    send_keys(:page_up).then { assert_cell tenth_player.common_name, focused: true, column: "Name"  }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end
