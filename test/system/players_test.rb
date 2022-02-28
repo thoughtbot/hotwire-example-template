@@ -115,6 +115,16 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:page_up).then { assert_cell tenth_player.common_name, focused: true, column: "Name"  }
   end
 
+  test "Page Up: If focus is in the first row of the grid, focus does not move." do
+    first_player, second_player = players.take(2)
+
+    visit players_path
+    2.times { send_keys :tab }.then { assert_cell first_player.common_name, focused: true, column: "Name" }
+    send_keys(:down).then { assert_cell second_player.common_name, focused: true, column: "Name" }
+    5.times { send_keys :page_up }.then { assert_cell first_player.common_name, focused: true, column: "Name"  }
+    send_keys(:down).then { assert_cell second_player.common_name, focused: true, column: "Name"  }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end
