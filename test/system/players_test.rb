@@ -67,6 +67,17 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:end).then { assert_cell first_player.position, focused: true, column: "Batter or Pitcher" }
   end
 
+  test "Control + Home: moves focus to the first cell in the first row." do
+    first_player, second_player, third_player = players.take(3)
+
+    visit players_path
+    2.times { send_keys :tab }.then { assert_cell focused: true, column: "Name" }
+    send_keys(:down).then { assert_cell second_player.common_name, focused: true, column: "Name" }
+    send_keys(:down).then { assert_cell third_player.common_name, focused: true, column: "Name" }
+    send_keys(:end).then { assert_cell third_player.position, focused: true, column: "Batter or Pitcher" }
+    send_keys([:control, :home]).then { assert_cell first_player.common_name, focused: true, column: "Name" }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end
