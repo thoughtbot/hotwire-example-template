@@ -40,10 +40,15 @@ export default class extends Controller {
 
       if (nextColumn) nextColumn.focus()
     } else if (key in boundaries) {
+      const row = this.rowTargets[this.rowValue]
+      const columnsInRow = this.columnTargets.filter(column => row.contains(column))
+
       if (boundaries[key] < 1) {
-        const row = this.rowTargets[this.rowValue]
-        const columnsInRow = this.columnTargets.filter(column => row.contains(column))
-        const nextColumn = columnsInRow[0]
+        const [ nextColumn ] = columnsInRow
+
+        if (nextColumn) nextColumn.focus()
+      } else {
+        const nextColumn = columnsInRow[columnsInRow.length - 1]
 
         if (nextColumn) nextColumn.focus()
       }

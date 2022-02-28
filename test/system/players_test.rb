@@ -58,6 +58,15 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:home).then { assert_cell first_player.common_name, focused: true, column: "Name" }
   end
 
+  test "End: moves focus to the last cell in the row that contains focus." do
+    first_player = players.first
+
+    visit players_path
+    send_keys(:tab)
+    send_keys(:tab).then { assert_cell first_player.common_name, focused: true, column: "Name" }
+    send_keys(:end).then { assert_cell first_player.position, focused: true, column: "Batter or Pitcher" }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end
