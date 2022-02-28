@@ -47,6 +47,17 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:up).then { assert_cell first_player.common_name, focused: true, column: "Name" }
   end
 
+  test "Home: moves focus to the first cell in the row that contains focus." do
+    first_player = players.first
+
+    visit players_path
+    send_keys(:tab)
+    send_keys(:tab).then { assert_cell focused: true, column: "Name" }
+    send_keys(:right).then { assert_cell focused: true, column: "League" }
+    send_keys(:right).then { assert_cell focused: true, column: "Hall of Fame" }
+    send_keys(:home).then { assert_cell first_player.common_name, focused: true, column: "Name" }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end

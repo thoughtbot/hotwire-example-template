@@ -30,7 +30,7 @@ export default class extends Controller {
     }
   }
 
-  moveColumn({ key, params: { directions } }) {
+  moveColumn({ key, params: { directions, boundaries } }) {
     if (key in directions) {
       this.columnValue += directions[key]
 
@@ -39,6 +39,14 @@ export default class extends Controller {
       const nextColumn = columnsInRow[this.columnValue]
 
       if (nextColumn) nextColumn.focus()
+    } else if (key in boundaries) {
+      if (boundaries[key] < 1) {
+        const row = this.rowTargets[this.rowValue]
+        const columnsInRow = this.columnTargets.filter(column => row.contains(column))
+        const nextColumn = columnsInRow[0]
+
+        if (nextColumn) nextColumn.focus()
+      }
     }
   }
 
