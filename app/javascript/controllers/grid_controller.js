@@ -68,7 +68,10 @@ export default class extends Controller {
 
   moveRow({ key, params: { directions } }) {
     if (key in directions) {
-      this.rowValue += directions[key]
+      this.rowValue = Math.min(
+        this.rowValue + directions[key],
+        this.rowTargets.length - 1
+      )
 
       const row = this.rowTargets[this.rowValue]
       const columnsInRow = this.columnTargets.filter(column => row.contains(column))
