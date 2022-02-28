@@ -78,6 +78,15 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys([:control, :home]).then { assert_cell first_player.common_name, focused: true, column: "Name" }
   end
 
+  test "Control + End: moves focus to the last cell in the last row." do
+    last_player_on_page = players.take(Pagy::DEFAULT[:items]).last
+
+    visit players_path
+    2.times { send_keys :tab }.then { assert_cell focused: true, column: "Name" }
+    send_keys([:control, :end]).then { assert_cell focused: true, column: "Batter or Pitcher" }
+    send_keys(:home).then { assert_cell last_player_on_page.common_name, focused: true, column: "Name" }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end

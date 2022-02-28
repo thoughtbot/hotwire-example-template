@@ -21,6 +21,12 @@ export default class extends Controller {
   }
 
   captureFocus({ target }) {
+    const row = this.rowTargets.find(row => row.contains(target))
+    const columnsInRow = this.columnTargets.filter(column => row.contains(column))
+
+    this.rowValue = this.rowTargets.indexOf(row)
+    this.columnValue = columnsInRow.indexOf(target)
+
     for (const column of this.columnTargets) {
       const tabindex = column == target ?
          0 :
@@ -49,6 +55,10 @@ export default class extends Controller {
 
         if (nextColumn) nextColumn.focus()
       } else {
+        const row = ctrlKey ?
+          this.rowTargets[this.rowTargets.length - 1] :
+          this.rowTargets[this.rowValue]
+        const columnsInRow = this.columnTargets.filter(column => row.contains(column))
         const nextColumn = columnsInRow[columnsInRow.length - 1]
 
         if (nextColumn) nextColumn.focus()
