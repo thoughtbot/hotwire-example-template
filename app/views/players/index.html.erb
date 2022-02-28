@@ -17,7 +17,7 @@
     <tbody>
       <% @players.each do |player| %>
         <tr data-grid-target="row" data-action="keydown->grid#moveRow"
-            data-grid-directions-param="<%= html_escape({ ArrowDown: +1, ArrowUp: -1 }.to_json) %>">
+            data-grid-directions-param="<%= html_escape({ ArrowDown: +1, ArrowUp: -1, PageDown: +10 }.to_json) %>">
           <% Player.headings.each do |heading| %>
             <td data-grid-target="column" data-action="focus->grid#captureFocus keydown->grid#moveColumn"
                 data-grid-boundaries-param="<%= html_escape({ Home: 0, End: 1 }.to_json) %>"

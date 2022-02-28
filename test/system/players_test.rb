@@ -87,6 +87,14 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:home).then { assert_cell last_player_on_page.common_name, focused: true, column: "Name" }
   end
 
+  test "Page Down: Moves focus down an author-determined number of rows" do
+    eleventh_player = players.take(11).last
+
+    visit players_path
+    2.times { send_keys :tab }.then { assert_cell focused: true, column: "Name" }
+    send_keys(:page_down).then { assert_cell eleventh_player.common_name, focused: true, column: "Name" }
+  end
+
   def assert_cell(...)
     assert_selector(:cell, ...)
   end
