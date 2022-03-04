@@ -1,5 +1,3 @@
-<div id="alerts" class="absolute bottom-0 right-0 w-96"></div>
-
 <fieldset>
   <legend>Copy</legend>
 
@@ -10,9 +8,19 @@
   </label>
 
   <button type="button" value="<%= @invitation_code %>"
-          data-controller="clipboard"
-          data-action="click->clipboard#copy">
+          data-controller="clipboard clone"
+          data-action="click->clipboard#copy click->clone#append">
     Copy to clipboard
+
+    <template data-clone-target="source">
+      <turbo-stream action="append" target="alerts">
+        <template>
+          <div role="alert" class="border border-solid rounded-md m-4 p-4">
+            Copied to clipboard
+          </div>
+        </template>
+      </turbo-stream>
+    </template>
   </button>
 </fieldset>
 
@@ -24,3 +32,5 @@
     <input>
   </label>
 </fieldset>
+
+<div id="alerts" class="absolute bottom-0 right-0 w-96"></div>
