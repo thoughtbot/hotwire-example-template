@@ -20,6 +20,16 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:right).then { assert_cell first_player.league, focused: true, column: "League" }
   end
 
+  test "Right Arrow: If focus is in the last column of the grid, focus does not move." do
+    first_player = players.first
+
+    visit players_path
+    2.times { send_keys :tab }.then { assert_cell focused: true, column: "Name" }
+    send_keys([:control, :end]).then { assert_cell focused: true, column: "Batter or Pitcher" }
+    5.times { send_keys :right }. then { assert_cell first_player.position, focused: true, column: "Batter or Pitcher"  }
+    send_keys(:left). then { assert_cell first_player.position_cat, focused: true, column: "Position played"  }
+  end
+
   test "Left Arrow: Moves focus one cell to the left." do
     first_player = players.first
 
@@ -28,6 +38,15 @@ class PlayersTest < ApplicationSystemTestCase
     send_keys(:tab).then { assert_cell first_player.common_name, focused: true, column: "Name" }
     send_keys(:right)
     send_keys(:left).then { assert_cell first_player.common_name, focused: true, column: "Name" }
+  end
+
+  test "Left Arrow: If focus is in the first column of the grid, focus does not move." do
+    first_player = players.first
+
+    visit players_path
+    2.times { send_keys :tab }.then { assert_cell focused: true, column: "Name" }
+    5.times { send_keys :left }. then { assert_cell first_player.common_name, focused: true, column: "Name"  }
+    send_keys(:right). then { assert_cell first_player.league, focused: true, column: "League"  }
   end
 
   test "Down Arrow: Moves focus one cell down." do

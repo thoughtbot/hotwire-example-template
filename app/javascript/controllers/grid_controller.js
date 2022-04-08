@@ -38,10 +38,13 @@ export default class extends Controller {
 
   moveColumn({ key, ctrlKey, params: { directions, boundaries } }) {
     if (key in directions) {
-      this.columnValue += directions[key]
-
       const row = this.rowTargets[this.rowValue]
       const columnsInRow = this.columnTargets.filter(column => row.contains(column))
+
+      this.columnValue += directions[key]
+      this.columnValue = Math.min(this.columnValue, columnsInRow.length - 1)
+      this.columnValue = Math.max(0, this.columnValue)
+
       const nextColumn = columnsInRow[this.columnValue]
 
       if (nextColumn) nextColumn.focus()
