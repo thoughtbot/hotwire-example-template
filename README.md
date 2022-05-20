@@ -67,3 +67,23 @@ procedures used to create this repository's content.
 
 [rebased]: https://git-scm.com/book/en/v2/Git-Branching-Rebasing
 [interactive rebasing]: https://git-scm.com/docs/git-rebase#Documentation/git-rebase.txt---interactive
+
+## How to experiment with this repository
+
+[![Run on Repl.it](https://repl.it/badge/github/seanpdoyle/hotwire-example-template)](https://repl.it/github/seanpdoyle/hotwire-example-template)
+
+You can fork the [@seanpdoyle/hotwire-example-template][] sandbox project on
+[replit.com][].
+
+Once you've forked it, make sure to set the following [Environment Variables][]:
+
+```sh
+# hint to your application that it's executing on replit.com
+REPLIT=1
+# use SQLite3 adapter, instead of PostgreSQL
+DATABASE_URL=sqlite3:////home/runner/hotwire-example-template/db/development.sqlite3
+```
+
+[replit.com]: https://replit.com/
+[@seanpdoyle/hotwire-example-template]: https://replit.com/@seanpdoyle/hotwire-example-template
+[Environment Variables]: https://docs.replit.com/programming-ide/storing-sensitive-information-environment-variables
