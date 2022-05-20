@@ -67,3 +67,13 @@ procedures used to create this repository's content.
 
 [rebased]: https://git-scm.com/book/en/v2/Git-Branching-Rebasing
 [interactive rebasing]: https://git-scm.com/docs/git-rebase#Documentation/git-rebase.txt---interactive
+
+## How to experiment with this repository
+
+[![Run on Repl.it](https://repl.it/badge/github/seanpdoyle/hotwire-example-template)](https://repl.it/github/seanpdoyle/hotwire-example-template)
+
+You can fork the [@seanpdoyle/hotwire-example-template][] sandbox project on
+[replit.com][].
+
+[replit.com]: https://replit.com/
+[@seanpdoyle/hotwire-example-template]: https://replit.com/@seanpdoyle/hotwire-example-template
