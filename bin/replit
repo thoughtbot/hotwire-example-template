@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+bin/rails db:drop db:create db:migrate db:fixtures:load
+
+bin/rails server --binding=0.0.0.0

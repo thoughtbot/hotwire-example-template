@@ -1,0 +1,24 @@
+run = ["bin/replit"]
+
+entrypoint = "README.md"
+
+hidden = [".bundle"]
+
+[env]
+PATH = "/home/runner/${REPL_SLUG}/bin"
+
+[packager]
+language = "ruby"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+
+[languages.ruby]
+pattern = "**/*.rb"
+
+[languages.ruby.languageServer]
+start = ["solargraph", "stdio"]
+
+[nix]
+channel = "unstable"
