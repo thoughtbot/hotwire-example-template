@@ -1,0 +1,76 @@
+<h1 class="text-lg">Server-side pagination</h1>
+
+<%
+    if params[:load].nil?
+      # the grid is initially rendered empty, but ready to fetch data
+      src = grid_path(load: true)
+      rows = []
+    else
+      # the grid renders the data set that as part of a remote fetch
+      min, max = params.values_at :startRow, :endRow
+      min = min || 0
+      max = max || 100
+      min, max = [min, max].map(&:to_i).minmax
+
+      src = nil
+      rows = min...max
+    end
+%>
+
+<%= tag.div class: "h-[40vh]", data: {
+      controller: "grid",
+      grid_options_value: {
+        columnDefs: [
+          { field: "a" },
+          { field: "b" },
+          { field: "c" },
+        ],
+        pagination: true,
+        rowModelType: "serverSide",
+        serverSideStoreType: "partial",
+      },
+    } do %>
+  <%= turbo_frame_tag "grid-datasource", src: src,
+                      data: { action: "grid:pagination->grid#loadRows" } do %>
+    <%= tag.meta data: { grid_target: "datasource" },
+                 content: {
+                   rowData: rows.map { |index| { a: index, b: index, c: index } },
+                   rowCount: 1_000,
+                 }.to_json %>
+  <% end %>
+
+  <div class="h-full ag-theme-alpine"
+       data-grid-target="table"></div>
+<% end %>
+
+<h1 class="text-lg">Client-side pagination</h1>
+
+<%
+    # the grid is pre-rendered with data
+    rows = 0...1_000
+%>
+
+<%= tag.div class: "h-[40vh]", data: {
+      controller: "grid",
+      grid_options_value: {
+        columnDefs: [
+          { field: "d" },
+          { field: "e" },
+          { field: "f" },
+        ],
+        pagination: true,
+        rowModelType: "serverSide",
+      },
+    } do %>
+  <%= turbo_frame_tag "grid-datasource",
+                      data: { action: "grid:pagination->grid#loadRows" } do %>
+    <%= tag.meta data: { grid_target: "datasource" },
+                 content: {
+                   rowData: rows.map { |index| { d: index, e: index, f: index } },
+                   rowCount: 1_000,
+                 }.to_json %>
+  <% end %>
+
+  <div class="h-full ag-theme-alpine"
+       data-grid-target="table"></div>
+<% end %>
