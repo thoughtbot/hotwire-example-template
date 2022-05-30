@@ -13,6 +13,7 @@ export default class extends Controller {
   }
 
   submit() {
+    this.submitTarget.disabled = false;
     this.submitTarget.click()
   }
 
