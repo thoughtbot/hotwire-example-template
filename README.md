@@ -868,6 +868,76 @@ debounced version:
 [Lodash.debounce]: https://lodash.com/docs/4.17.15#debounce
 [Skypack]: https://www.skypack.dev/about
 
+Network Latency
+---
+
+To test how our application behaves on a slow network we can add a sleep
+statement to each search.
+```diff
+diff --git a/app/controllers/searches_controller.rb b/app/controllers/searches_controller.rb
+index b50b49c..d41e691 100644
+--- a/app/controllers/searches_controller.rb
++++ b/app/controllers/searches_controller.rb
+@@ -1,5 +1,6 @@
+ class SearchesController < ApplicationController
+   def index
++    sleep 1
+     @messages = Message.containing(params[:query])
+   end
+ end
+```
+
+A slow network combined with debounce means users that type at _just_
+the right frequency may never receive search results for their latest
+input. This is because by default turbo disables the form submit button
+during a request to prevent accidental [double submits](https://github.com/hotwired/turbo/blob/933419bd8f3a2ac8e11be492f56412eebbb47954/src/core/drive/form_submission.ts#L159). (In older versions
+of rails this behavior was implemented by rails-ujs and has since been
+ported to turbo)
+
+To ensure a request is started for the latest inputted search, we should
+ensure the submitTarget is enabled before sending a click event.
+
+```diff
+diff --git a/app/javascript/controllers/form_controller.js b/app/javascript/controllers/form_controller.js
+index f9214d8..7d36172 100644
+--- a/app/javascript/controllers/form_controller.js
++++ b/app/javascript/controllers/form_controller.js
+@@ -13,6 +13,7 @@ export default class extends Controller {
+   }
+
+   submit() {
++    this.submitTarget.disabled = false;
+     this.submitTarget.click()
+   }
+```
+
+Another network scenario that's worth testing is randomizing the
+response time. In a production environment, the order requests are
+initiated is not guaranteed to be the order they resolve. For
+example one of your web servers could be running low on resources and
+respond slower than other servers in the group. This would cause the
+browser to display old search results rather than the latest request
+that matches the search input.
+```diff
+diff --git a/app/controllers/searches_controller.rb b/app/controllers/searches_controller.rb
+index b50b49c..d41e691 100644
+--- a/app/controllers/searches_controller.rb
++++ b/app/controllers/searches_controller.rb
+@@ -1,5 +1,6 @@
+ class SearchesController < ApplicationController
+   def index
++    sleep rand * 3
+     @messages = Message.containing(params[:query])
+   end
+ end
+```
+
+Unlike many client-side tools, Turbo already handles this scenario for
+us by canceling all but the [latest request](https://github.com/hotwired/turbo/blob/933419bd8f3a2ac8e11be492f56412eebbb47954/src/core/drive/form_submission.ts#L140).
+
+You can review the network tab in Chrome tools while typing into
+the search input to watch this happen.
+
 Wrapping up
 ---
 
