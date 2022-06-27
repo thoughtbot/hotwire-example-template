@@ -750,7 +750,7 @@ Next, we'll add that class to our `<a>` search result elements:
 ## Searching while typing
 
 Whenever the end-user enters text into `<input type="search">` element,
-an [input][] event fill fire fore each keystroke and bubble up.. When
+an [input][] event will fire for each keystroke and bubble up.. When
 the `<input>` element's text changes, we'll refresh the search results
 by submitting the corresponding `<form>` element. Since the `<form>`
 element targets the `<turbo-frame id="search_results">`, the frame will
