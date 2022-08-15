@@ -1,0 +1,16 @@
+image:
+  file: .gitpod.Dockerfile
+
+ports:
+  # Rails server
+  - port: 3000
+    onOpen: open-preview
+  # PostgreSQL server
+  - port: 5432
+    onOpen: ignore
+
+tasks:
+  - init: >
+      bin/setup
+    command: >
+      bin/rails server -b 0.0.0.0
