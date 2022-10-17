@@ -133,7 +133,7 @@ with the [link_to][] helper:
 
 Since the mentions are entirely String-based, they won't include any
 information related to a `User` record's identifier. We'll need to add
-support for resolveing records based on the `params[:id]` path
+support for resolving records based on the `params[:id]` path
 parameter.
 
 The generated `UsersController#set_user` helper method queries rows by
@@ -930,7 +930,6 @@ or on <kbd>escape</kbd>:
 +                                              action: "
 +                                                keydown->mentions#collapseOnEscape
 +                                                keydown->mentions#collapseOnCursorExit
-+                                                trix-blur->mentions#collapse
 +                                               " } %>
 
      <button form="new_mention" name="username" data-mentions-target="submit" hidden>Search</button>
